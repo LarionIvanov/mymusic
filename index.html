@@ -29,22 +29,37 @@
   <h1>Моя музыка</h1>
 
   <div class="track">
-    <strong>Bill Chase — Boys and girls together</strong><br>
-    <audio controls src="music/chase-usa-boys-and-girls-together.mp3"></audio>
-  </div>
-
-  <div class="track">
-    <strong>Caravan — in the land of grey and pink</strong><br>
+    <strong>Caravan - In the land of grey & pink</strong><br>
     <audio controls src="music/caravan-in-the-land-of-grey-and-pink.mp3"></audio>
   </div>
 
   <div class="track">
-    <strong>Трек 3</strong><br>
-    <audio controls src="music/track3.mp3"></audio>
+    <strong>Chase - Boys and girls together</strong><br>
+    <audio controls src="music/chase-usa-boys-and-girls-together.mp3"></audio>
+  </div>
+
+  <div class="track">
+    <strong>Joni Mitchell - Chelsea morning</strong><br>
+    <audio controls src="music/joni-mitchell-chelsea-morning.mp3"></audio>
   </div>
 
   <p style="margin-top: 40px; font-size: 0.9em; color: gray;">
     © Моя страница музыки
   </p>
+
+  <script>
+    // Находим все элементы <audio> на странице
+    const tracks = document.querySelectorAll('audio');
+
+    // Для каждого трека добавляем слушатель события "конец воспроизведения"
+    tracks.forEach((track, index) => {
+      track.addEventListener('ended', () => {
+        const nextTrack = tracks[index + 1];
+        if (nextTrack) {
+          nextTrack.play(); // Запускаем следующий трек
+        }
+      });
+    });
+  </script>
 </body>
 </html>
