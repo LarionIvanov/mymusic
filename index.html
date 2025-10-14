@@ -132,10 +132,30 @@
   });
 
   // При открытии страницы
-  (async () => {
-    await ensureAnonymousSession();
-    await loadTracks();
-  })();
+(async () => {
+  await ensureAnonymousSession();
+  await loadTracks();
+  enableAutoPlay();
+})();
+
+// Функция для автоматического воспроизведения треков
+function enableAutoPlay() {
+  const audios = document.querySelectorAll("audio");
+
+  audios.forEach((audio, index) => {
+    audio.addEventListener("ended", () => {
+      const nextAudio = audios[index + 1];
+      if (nextAudio) {
+        nextAudio.play();
+      } else {
+        // Если это последний трек — можно зациклить список
+        const firstAudio = audios[0];
+        if (firstAudio) firstAudio.play();
+      }
+    });
+  });
+}
+
 </script>
 </body>
 </html>
