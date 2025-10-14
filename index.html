@@ -7,59 +7,135 @@
   <style>
     body {
       font-family: sans-serif;
-      background-color: white;
-      color: black;
-      max-width: 600px;
-      margin: 40px auto;
+      background: white;
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      margin-bottom: 1rem;
+    }
+
+    #upload-section {
+      margin-bottom: 2rem;
+      border: 2px dashed #ccc;
+      padding: 1.5rem;
+      border-radius: 10px;
+      width: 320px;
       text-align: center;
     }
-    h1 {
-      margin-bottom: 30px;
+
+    #music-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      width: 320px;
     }
+
     .track {
-      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      border: 1px solid #ddd;
+      padding: 1rem;
+      border-radius: 8px;
+      background: #fafafa;
     }
+
     audio {
       width: 100%;
-      outline: none;
+      margin-top: 0.5rem;
     }
   </style>
 </head>
 <body>
-  <h1>Моя музыка</h1>
+  <h1>🎵 Моя музыка</h1>
 
-  <div class="track">
-    <strong>Caravan - In the land of grey & pink</strong><br>
-    <audio controls src="music/caravan-in-the-land-of-grey-and-pink.mp3"></audio>
+  <div id="upload-section">
+    <input type="file" id="fileInput" accept="audio/*" />
+    <button id="uploadButton">Загрузить трек</button>
+    <p id="status"></p>
   </div>
 
-  <div class="track">
-    <strong>Chase - Boys and girls together</strong><br>
-    <audio controls src="music/chase-usa-boys-and-girls-together.mp3"></audio>
-  </div>
+  <div id="audioList"></div>
 
-  <div class="track">
-    <strong>Joni Mitchell - Chelsea morning</strong><br>
-    <audio controls src="music/joni-mitchell-chelsea-morning.mp3"></audio>
-  </div>
+  <script type="module">
+  import { Client, Storage, Account, ID } from "https://cdn.jsdelivr.net/npm/appwrite@13.0.0/+esm";
 
-  <p style="margin-top: 40px; font-size: 0.9em; color: gray;">
-    © Моя страница музыки
-  </p>
+  // Настройки Appwrite
+  const client = new Client()
+    .setEndpoint('https://cloud.appwrite.io/v1')
+    .setProject('68edff2c00028e4b809b');
 
-  <script>
-    // Находим все элементы <audio> на странице
-    const tracks = document.querySelectorAll('audio');
+  const account = new Account(client);
+  const storage = new Storage(client);
+  const bucketId = '68edff670001c6096f18';
 
-    // Для каждого трека добавляем слушатель события "конец воспроизведения"
-    tracks.forEach((track, index) => {
-      track.addEventListener('ended', () => {
-        const nextTrack = tracks[index + 1];
-        if (nextTrack) {
-          nextTrack.play(); // Запускаем следующий трек
-        }
-      });
-    });
-  </script>
+  const fileInput = document.getElementById('fileInput');
+  const uploadButton = document.getElementById('uploadButton');
+  const audioList = document.getElementById('audioList');
+  const statusText = document.getElementById('status');
+
+  // Создаём анонимного пользователя (один раз при загрузке)
+  async function ensureAnonymousSession() {
+    try {
+      await account.get();
+    } catch {
+      await account.createAnonymousSession();
+    }
+  }
+
+  // Загрузка списка треков
+  async function loadTracks() {
+    try {
+      const result = await storage.listFiles(bucketId);
+      audioList.innerHTML = '';
+
+      for (const file of result.files) {
+        const fileUrl = `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
+
+        const trackDiv = document.createElement('div');
+        trackDiv.classList.add('track');
+        trackDiv.innerHTML = `
+          <strong>${file.name}</strong>
+          <audio controls src="${fileUrl}"></audio>
+        `;
+        audioList.appendChild(trackDiv);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке списка файлов:', error);
+      statusText.textContent = 'Ошибка при загрузке списка треков!';
+    }
+  }
+
+  // Загрузка нового трека
+  uploadButton.addEventListener('click', async () => {
+    const file = fileInput.files[0];
+    if (!file) {
+      statusText.textContent = "Выберите файл!";
+      return;
+    }
+
+    statusText.textContent = "⏳ Загрузка...";
+    try {
+      await storage.createFile(bucketId, ID.unique(), file);
+      statusText.textContent = "✅ Трек загружен!";
+      fileInput.value = "";
+      await loadTracks();
+    } catch (error) {
+      console.error('Ошибка при загрузке файла:', error);
+      statusText.textContent = "❌ Ошибка при загрузке!";
+    }
+  });
+
+  // При открытии страницы
+  (async () => {
+    await ensureAnonymousSession();
+    await loadTracks();
+  })();
+</script>
 </body>
 </html>
