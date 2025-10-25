@@ -26,6 +26,12 @@
       border-radius: 10px;
       width: 320px;
       text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    #upload-section:hover {
+      border-color: #888;
+      background: #f9f9f9;
     }
 
     #audioList {
@@ -44,6 +50,19 @@
       border-radius: 8px;
       background: #fafafa;
       cursor: grab;
+      transition: all 0.2s ease;
+    }
+
+    .track.dragging {
+      opacity: 0.6;
+      background: #e0f7fa;
+      transform: scale(1.02);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .track.over {
+      border-color: #00bcd4;
+      background: #e0faff;
     }
 
     audio {
@@ -188,23 +207,31 @@
       let dragged;
 
       audioList.addEventListener("dragstart", e => {
-        dragged = e.target;
-        e.target.style.opacity = 0.5;
+        dragged = e.target.closest(".track");
+        if (!dragged) return;
+        dragged.classList.add("dragging");
       });
 
       audioList.addEventListener("dragend", e => {
-        e.target.style.opacity = "";
+        if (dragged) dragged.classList.remove("dragging");
         saveOrder();
       });
 
       audioList.addEventListener("dragover", e => {
         e.preventDefault();
         const target = e.target.closest(".track");
-        if (target && target !== dragged) {
-          const rect = target.getBoundingClientRect();
-          const next = e.clientY - rect.top > rect.height / 2;
-          audioList.insertBefore(dragged, next ? target.nextSibling : target);
-        }
+        if (!target || target === dragged) return;
+
+        const rect = target.getBoundingClientRect();
+        const next = e.clientY - rect.top > rect.height / 2;
+
+        target.classList.add("over");
+        audioList.insertBefore(dragged, next ? target.nextSibling : target);
+      });
+
+      audioList.addEventListener("dragleave", e => {
+        const target = e.target.closest(".track");
+        if (target) target.classList.remove("over");
       });
     }
 
