@@ -46,9 +46,9 @@
       cursor: grab;
     }
 
-    .drag-over {
-      border: 2px dashed #007aff;
-      background: #eef6ff;
+    .track.dragging {
+      opacity: 0.5;
+      border: 2px dashed #888;
     }
 
     audio {
@@ -69,188 +69,165 @@
   <div id="audioList"></div>
 
   <script type="module">
-  import { Client, Storage, Account, ID, Databases } from "https://cdn.jsdelivr.net/npm/appwrite@13.0.0/+esm";
+    import { Client, Storage, Account, ID, Databases } from "https://cdn.jsdelivr.net/npm/appwrite@13.0.0/+esm";
 
-  // === Настройки Appwrite ===
-  const client = new Client()
-    .setEndpoint('https://cloud.appwrite.io/v1')
-    .setProject('68edff2c00028e4b809b');
+    // Настройки Appwrite
+    const client = new Client()
+      .setEndpoint("https://cloud.appwrite.io/v1")
+      .setProject("68edff2c00028e4b809b");
 
-  const account = new Account(client);
-  const storage = new Storage(client);
-  const databases = new Databases(client);
+    const account = new Account(client);
+    const storage = new Storage(client);
+    const databases = new Databases(client);
 
-  const bucketId = '68edff670001c6096f18';
-  const databaseId = 'main';
-  const tableId = 'tracks_order'; // название таблицы
+    const bucketId = "68edff670001c6096f18"; // ID хранилища (Storage)
+    const databaseId = "main"; // ID базы данных
+    const tableId = "tracks_order"; // ID таблицы
 
-  const fileInput = document.getElementById('fileInput');
-  const uploadButton = document.getElementById('uploadButton');
-  const audioList = document.getElementById('audioList');
-  const statusText = document.getElementById('status');
+    const fileInput = document.getElementById("fileInput");
+    const uploadButton = document.getElementById("uploadButton");
+    const audioList = document.getElementById("audioList");
+    const statusText = document.getElementById("status");
 
-  // === Авторизация (анонимная сессия) ===
-  async function ensureAnonymousSession() {
-    try {
-      await account.get();
-    } catch {
-      await account.createAnonymousSession();
-    }
-  }
-
-  // === Загрузка сохранённого порядка ===
-  async function getSavedOrder() {
-    try {
-      const res = await databases.listDocuments(databaseId, tableId);
-      if (res.documents.length > 0) {
-        const orderData = res.documents[0].order;
-        return JSON.parse(orderData);
+    // Создание анонимного пользователя
+    async function ensureAnonymousSession() {
+      try {
+        await account.get();
+      } catch {
+        await account.createAnonymousSession();
       }
-    } catch (err) {
-      console.warn("Порядок треков не найден:", err);
-    }
-    return null;
-  }
-
-  // === Сохранение нового порядка ===
-  async function saveOrder(orderArray) {
-    try {
-      const existing = await databases.listDocuments(databaseId, tableId);
-      const json = JSON.stringify(orderArray);
-
-      if (existing.documents.length > 0) {
-        const docId = existing.documents[0].$id;
-        await databases.updateDocument(databaseId, tableId, docId, { order: json });
-      } else {
-        await databases.createDocument(databaseId, tableId, ID.unique(), { order: json });
-      }
-    } catch (err) {
-      console.error("Ошибка сохранения порядка:", err);
-    }
-  }
-
-  // === Загрузка треков ===
-  async function loadTracks() {
-    try {
-      const result = await storage.listFiles(bucketId);
-      const savedOrder = await getSavedOrder();
-
-      let files = result.files;
-      if (savedOrder) {
-        files.sort((a, b) => savedOrder.indexOf(a.$id) - savedOrder.indexOf(b.$id));
-      }
-
-      audioList.innerHTML = '';
-      for (const file of files) {
-        const fileUrl = `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
-        const trackDiv = document.createElement('div');
-        trackDiv.classList.add('track');
-        trackDiv.draggable = true;
-        trackDiv.dataset.id = file.$id;
-
-        trackDiv.innerHTML = `
-          <strong>${file.name}</strong>
-          <audio controls src="${fileUrl}"></audio>
-        `;
-
-        audioList.appendChild(trackDiv);
-      }
-
-      enableDragAndDrop();
-      enableAutoPlay();
-    } catch (error) {
-      console.error('Ошибка при загрузке списка файлов:', error);
-      statusText.textContent = 'Ошибка при загрузке списка треков!';
-    }
-  }
-
-  // === Загрузка нового трека ===
-  uploadButton.addEventListener('click', async () => {
-    const file = fileInput.files[0];
-    if (!file) {
-      statusText.textContent = "Выберите файл!";
-      return;
     }
 
-    statusText.textContent = "⏳ Загрузка...";
-    try {
-      await storage.createFile(bucketId, ID.unique(), file);
-      statusText.textContent = "✅ Трек загружен!";
-      fileInput.value = "";
-      await loadTracks();
-    } catch (error) {
-      console.error('Ошибка при загрузке файла:', error);
-      statusText.textContent = "❌ Ошибка при загрузке!";
-    }
-  });
-
-  // === Drag and Drop ===
-  function enableDragAndDrop() {
-    let dragged;
-
-    audioList.querySelectorAll('.track').forEach(track => {
-      track.addEventListener('dragstart', e => {
-        dragged = track;
-        track.style.opacity = 0.5;
-      });
-
-      track.addEventListener('dragend', e => {
-        track.style.opacity = '';
-      });
-
-      track.addEventListener('dragover', e => {
-        e.preventDefault();
-        track.classList.add('drag-over');
-      });
-
-      track.addEventListener('dragleave', () => {
-        track.classList.remove('drag-over');
-      });
-
-      track.addEventListener('drop', e => {
-        e.preventDefault();
-        track.classList.remove('drag-over');
-        if (dragged && dragged !== track) {
-          const tracks = [...audioList.children];
-          const draggedIndex = tracks.indexOf(dragged);
-          const targetIndex = tracks.indexOf(track);
-
-          if (draggedIndex < targetIndex) {
-            audioList.insertBefore(dragged, track.nextSibling);
-          } else {
-            audioList.insertBefore(dragged, track);
-          }
-
-          const newOrder = [...audioList.children].map(div => div.dataset.id);
-          saveOrder(newOrder);
+    // Загрузка сохранённого порядка
+    async function loadOrder() {
+      try {
+        const result = await databases.listDocuments(databaseId, tableId);
+        if (result.documents.length > 0) {
+          return JSON.parse(result.documents[0].order);
         }
-      });
-    });
-  }
+      } catch (error) {
+        console.warn("Порядок треков не найден:", error.message);
+      }
+      return null;
+    }
 
-  // === Автовоспроизведение ===
-  function enableAutoPlay() {
-    const audios = document.querySelectorAll("audio");
-
-    audios.forEach((audio, index) => {
-      audio.addEventListener("ended", () => {
-        const nextAudio = audios[index + 1];
-        if (nextAudio) {
-          nextAudio.play();
+    // Сохранение нового порядка
+    async function saveOrder(orderArray) {
+      try {
+        const result = await databases.listDocuments(databaseId, tableId);
+        if (result.documents.length > 0) {
+          await databases.updateDocument(databaseId, tableId, result.documents[0].$id, {
+            order: JSON.stringify(orderArray)
+          });
         } else {
-          const firstAudio = audios[0];
-          if (firstAudio) firstAudio.play();
+          await databases.createDocument(databaseId, tableId, ID.unique(), {
+            order: JSON.stringify(orderArray)
+          });
         }
+      } catch (error) {
+        console.error("Ошибка сохранения порядка:", error.message);
+      }
+    }
+
+    // Загрузка списка треков
+    async function loadTracks() {
+      try {
+        const result = await storage.listFiles(bucketId);
+        let files = result.files;
+
+        const savedOrder = await loadOrder();
+        if (savedOrder) {
+          files.sort((a, b) => savedOrder.indexOf(a.$id) - savedOrder.indexOf(b.$id));
+        }
+
+        audioList.innerHTML = "";
+        for (const file of files) {
+          const fileUrl = `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
+          const trackDiv = document.createElement("div");
+          trackDiv.classList.add("track");
+          trackDiv.draggable = true;
+          trackDiv.dataset.id = file.$id;
+          trackDiv.innerHTML = `
+            <strong>${file.name}</strong>
+            <audio controls src="${fileUrl}"></audio>
+          `;
+          audioList.appendChild(trackDiv);
+        }
+
+        enableDragAndDrop();
+        enableAutoPlay();
+      } catch (error) {
+        console.error("Ошибка при загрузке треков:", error);
+        statusText.textContent = "Ошибка при загрузке списка треков!";
+      }
+    }
+
+    // Drag & Drop перестановка
+    function enableDragAndDrop() {
+      const tracks = document.querySelectorAll(".track");
+      let dragged = null;
+
+      tracks.forEach(track => {
+        track.addEventListener("dragstart", () => {
+          dragged = track;
+          track.classList.add("dragging");
+        });
+        track.addEventListener("dragend", async () => {
+          track.classList.remove("dragging");
+          dragged = null;
+
+          const newOrder = Array.from(audioList.children).map(t => t.dataset.id);
+          await saveOrder(newOrder);
+        });
+        track.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          const bounding = track.getBoundingClientRect();
+          const offset = bounding.y + bounding.height / 2;
+          if (e.clientY - offset > 0) {
+            track.after(dragged);
+          } else {
+            track.before(dragged);
+          }
+        });
       });
+    }
+
+    // Автоматическое воспроизведение треков
+    function enableAutoPlay() {
+      const audios = document.querySelectorAll("audio");
+      audios.forEach((audio, index) => {
+        audio.addEventListener("ended", () => {
+          const next = audios[index + 1];
+          if (next) next.play();
+        });
+      });
+    }
+
+    // Загрузка нового трека
+    uploadButton.addEventListener("click", async () => {
+      const file = fileInput.files[0];
+      if (!file) {
+        statusText.textContent = "Выберите файл!";
+        return;
+      }
+
+      statusText.textContent = "⏳ Загрузка...";
+      try {
+        await storage.createFile(bucketId, ID.unique(), file);
+        statusText.textContent = "✅ Трек загружен!";
+        fileInput.value = "";
+        await loadTracks();
+      } catch (error) {
+        console.error("Ошибка при загрузке файла:", error);
+        statusText.textContent = "❌ Ошибка при загрузке!";
+      }
     });
-  }
 
-  // === Запуск ===
-  (async () => {
-    await ensureAnonymousSession();
-    await loadTracks();
-  })();
-
+    // Инициализация
+    (async () => {
+      await ensureAnonymousSession();
+      await loadTracks();
+    })();
   </script>
 </body>
 </html>
