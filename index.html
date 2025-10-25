@@ -66,7 +66,7 @@
   <script type="module">
     import { Client, Storage, Account, ID, Databases } from "https://cdn.jsdelivr.net/npm/appwrite@13.0.0/+esm";
 
-    // 🔧 Настройки Appwrite
+    // === Настройки Appwrite ===
     const client = new Client()
       .setEndpoint("https://cloud.appwrite.io/v1")
       .setProject("68edff2c00028e4b809b");
@@ -76,51 +76,17 @@
     const databases = new Databases(client);
 
     const bucketId = "68edff670001c6096f18";
+    const databaseId = "68fa77bf00299325c262";
+    const collectionId = "tracks_order";
+    const documentId = "68fa7961001aa4c376a6";
 
-    // Возможные варианты ID базы и таблицы (Appwrite может требовать с префиксом или без)
-    const dbCandidates = ["database-68fa77bf00299325c262", "68fa77bf00299325c262"];
-    const tableCandidates = ["table-tracks_order", "tracks_order"];
+    // === Элементы страницы ===
+    const fileInput = document.getElementById("fileInput");
+    const uploadButton = document.getElementById("uploadButton");
+    const audioList = document.getElementById("audioList");
+    const statusText = document.getElementById("status");
 
-    let databaseId = null;
-    let tableId = null;
-    let rowId = null;
-
-    // --- 🔍 Определяем рабочие ID базы и таблицы ---
-    async function detectDatabaseAndTable() {
-      for (const db of dbCandidates) {
-        for (const table of tableCandidates) {
-          try {
-            const res = await databases.listDocuments(db, table, { limit: 1 });
-            databaseId = db;
-            tableId = table;
-            console.log("✅ Используем:", db, table);
-            return;
-          } catch (err) {
-            console.log(`⛔️ ${db}/${table} не подошло:`, err.message);
-          }
-        }
-      }
-      console.warn("⚠️ Не удалось определить базу/таблицу. Проверь ID в Appwrite.");
-    }
-
-    // --- ⚙️ Создаём или находим строку (row) для хранения порядка треков ---
-    async function ensureOrderRow() {
-      try {
-        const list = await databases.listDocuments(databaseId, tableId);
-        if (list.documents.length > 0) {
-          rowId = list.documents[0].$id;
-          console.log("📄 Найдена строка:", rowId);
-        } else {
-          const created = await databases.createDocument(databaseId, tableId, ID.unique(), { order: "[]" });
-          rowId = created.$id;
-          console.log("🆕 Создана новая строка:", rowId);
-        }
-      } catch (err) {
-        console.error("Ошибка при получении/создании строки:", err);
-      }
-    }
-
-    // --- 🔐 Анонимная сессия ---
+    // === Авторизация (анонимная сессия) ===
     async function ensureAnonymousSession() {
       try {
         await account.get();
@@ -129,13 +95,12 @@
       }
     }
 
-    // --- 💾 Загрузка треков и порядок ---
+    // === Загрузка треков и восстановление порядка ===
     async function loadTracks() {
-      if (!databaseId || !tableId || !rowId) await ensureOrderRow();
-
       try {
-        const orderDoc = await databases.getDocument(databaseId, tableId, rowId);
+        const orderDoc = await databases.getDocument(databaseId, collectionId, documentId);
         let order = [];
+
         try {
           order = JSON.parse(orderDoc.order || "[]");
         } catch {
@@ -146,6 +111,7 @@
         const filesMap = {};
         files.files.forEach(f => (filesMap[f.$id] = f));
 
+        // Сортировка треков по сохранённому порядку
         const sorted = order
           .map(id => filesMap[id])
           .filter(Boolean)
@@ -173,21 +139,19 @@
       }
     }
 
-    // --- 💾 Сохранение нового порядка ---
+    // === Сохранение порядка треков ===
     async function saveOrder() {
-      if (!rowId) return;
       const order = [...audioList.children].map(el => el.dataset.id);
       try {
-        await databases.updateDocument(databaseId, tableId, rowId, {
+        await databases.updateDocument(databaseId, collectionId, documentId, {
           order: JSON.stringify(order),
         });
-        console.log("✅ Порядок сохранён:", order);
       } catch (error) {
         console.error("Ошибка сохранения порядка:", error.message);
       }
     }
 
-    // --- ⏫ Загрузка трека ---
+    // === Загрузка нового трека ===
     uploadButton.addEventListener("click", async () => {
       const file = fileInput.files[0];
       if (!file) {
@@ -197,7 +161,7 @@
 
       statusText.textContent = "⏳ Загрузка...";
       try {
-        const uploaded = await storage.createFile(bucketId, ID.unique(), file);
+        await storage.createFile(bucketId, ID.unique(), file);
         statusText.textContent = "✅ Трек загружен!";
         fileInput.value = "";
         await loadTracks();
@@ -208,7 +172,7 @@
       }
     });
 
-    // --- ▶️ Автоматическое воспроизведение ---
+    // === Автовоспроизведение ===
     function enableAutoPlay() {
       const audios = document.querySelectorAll("audio");
       audios.forEach((audio, index) => {
@@ -219,7 +183,7 @@
       });
     }
 
-    // --- 🖱️ Перетаскивание треков ---
+    // === Drag & Drop ===
     function enableDragAndDrop() {
       let dragged;
 
@@ -244,11 +208,9 @@
       });
     }
 
-    // --- 🚀 Запуск ---
+    // === Запуск ===
     (async () => {
       await ensureAnonymousSession();
-      await detectDatabaseAndTable();
-      await ensureOrderRow();
       await loadTracks();
     })();
   </script>
