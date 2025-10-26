@@ -239,11 +239,14 @@
   const audios = document.querySelectorAll("audio");
 
   audios.forEach((audio) => {
-    // Если пользователь вручную включает этот трек —
-    // останавливаем все остальные.
+    // Когда пользователь включает трек —
+    // останавливаем все остальные и сбрасываем их позицию
     audio.addEventListener("play", () => {
       audios.forEach((other) => {
-        if (other !== audio) other.pause();
+        if (other !== audio) {
+          other.pause();
+          other.currentTime = 0; // сброс на начало
+        }
       });
     });
 
@@ -254,6 +257,7 @@
     });
   });
 }
+
 
 
     // === Drag & Drop ===
