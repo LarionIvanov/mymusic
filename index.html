@@ -159,6 +159,20 @@
     #settingsButton:active {
       transform: scale(0.95);
     }
+
+    .track.dragging {
+  opacity: 0.7;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.track.placeholder {
+  border: 2px dashed #00c3ff;
+  background: rgba(0, 195, 255, 0.1);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
   </style>
 </head>
 <body>
@@ -281,85 +295,107 @@
       });
     }
 
-    // ✅ Новый Drag & Drop с поддержкой мобильных устройств
-    function enableDragAndDrop() {
-      let draggedElement = null;
-      let touchStartY = 0;
-      let placeholder = null;
+    // ✅ Улучшенный Drag & Drop с плавной анимацией и корректным мобильным поведением
+function enableDragAndDrop() {
+  let draggedElement = null;
+  let placeholder = null;
+  let startY = 0;
+  let offsetY = 0;
 
-      audioList.addEventListener("dragstart", e => {
-        draggedElement = e.target;
-        e.target.style.opacity = 0.5;
-      });
+  // === Desktop drag & drop ===
+  audioList.addEventListener("dragstart", (e) => {
+    draggedElement = e.target.closest(".track");
+    if (!draggedElement) return;
 
-      audioList.addEventListener("dragend", e => {
-        e.target.style.opacity = "";
-        draggedElement = null;
-        saveOrder();
-      });
+    draggedElement.classList.add("dragging");
+    e.dataTransfer.effectAllowed = "move";
+  });
 
-      audioList.addEventListener("dragover", e => {
-        e.preventDefault();
-        const target = e.target.closest(".track");
-        if (target && target !== draggedElement) {
-          const rect = target.getBoundingClientRect();
-          const next = e.clientY - rect.top > rect.height / 2;
-          audioList.insertBefore(draggedElement, next ? target.nextSibling : target);
-        }
-      });
+  audioList.addEventListener("dragend", () => {
+    if (draggedElement) draggedElement.classList.remove("dragging");
+    draggedElement = null;
+    saveOrder();
+  });
 
-      // Мобильное перетаскивание
-      audioList.addEventListener("touchstart", e => {
-        const target = e.target.closest(".track");
-        if (!target) return;
-        draggedElement = target;
-        touchStartY = e.touches[0].clientY;
+  audioList.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    const target = e.target.closest(".track");
+    if (!target || target === draggedElement) return;
 
-        placeholder = document.createElement("div");
-        placeholder.className = "track placeholder";
-        placeholder.style.height = `${draggedElement.offsetHeight}px`;
-        draggedElement.parentNode.insertBefore(placeholder, draggedElement.nextSibling);
+    const rect = target.getBoundingClientRect();
+    const next = e.clientY > rect.top + rect.height / 2;
+    audioList.insertBefore(draggedElement, next ? target.nextSibling : target);
+  });
 
-        draggedElement.style.position = "absolute";
-        draggedElement.style.zIndex = "1000";
-        draggedElement.style.width = "320px";
-        draggedElement.style.pointerEvents = "none";
-      });
+  // === Mobile touch drag & drop ===
+  audioList.addEventListener("touchstart", (e) => {
+    const target = e.target.closest(".track");
+    if (!target) return;
+    draggedElement = target;
 
-      audioList.addEventListener("touchmove", e => {
-        if (!draggedElement) return;
-        const touchY = e.touches[0].clientY;
-        draggedElement.style.top = `${touchY - touchStartY + 10}px`;
+    startY = e.touches[0].clientY;
+    const rect = draggedElement.getBoundingClientRect();
+    offsetY = startY - rect.top;
 
-        const tracks = [...audioList.querySelectorAll(".track:not(.placeholder)")];
-        const currentY = e.touches[0].clientY;
+    placeholder = document.createElement("div");
+    placeholder.className = "track placeholder";
+    placeholder.style.height = `${rect.height}px`;
 
-        for (let i = 0; i < tracks.length; i++) {
-          const rect = tracks[i].getBoundingClientRect();
-          if (currentY > rect.top && currentY < rect.bottom) {
-            if (currentY < rect.top + rect.height / 2) {
-              audioList.insertBefore(placeholder, tracks[i]);
-            } else {
-              audioList.insertBefore(placeholder, tracks[i].nextSibling);
-            }
-          }
-        }
-      });
+    draggedElement.classList.add("dragging");
+    draggedElement.style.position = "absolute";
+    draggedElement.style.left = `${rect.left}px`;
+    draggedElement.style.top = `${rect.top}px`;
+    draggedElement.style.width = `${rect.width}px`;
+    draggedElement.style.zIndex = "1000";
+    draggedElement.style.transition = "transform 0.15s ease";
 
-      audioList.addEventListener("touchend", () => {
-        if (!draggedElement || !placeholder) return;
-        draggedElement.style.position = "";
-        draggedElement.style.zIndex = "";
-        draggedElement.style.top = "";
-        draggedElement.style.width = "";
-        draggedElement.style.pointerEvents = "";
-        audioList.insertBefore(draggedElement, placeholder);
-        placeholder.remove();
-        placeholder = null;
-        draggedElement = null;
-        saveOrder();
-      });
+    requestAnimationFrame(() => {
+      draggedElement.style.transform = "scale(1.03)";
+    });
+
+    draggedElement.parentNode.insertBefore(placeholder, draggedElement.nextSibling);
+  });
+
+  audioList.addEventListener("touchmove", (e) => {
+    if (!draggedElement) return;
+
+    e.preventDefault();
+    const touchY = e.touches[0].clientY;
+    draggedElement.style.top = `${touchY - offsetY}px`;
+
+    const tracks = [...audioList.querySelectorAll(".track:not(.dragging):not(.placeholder)")];
+    for (const track of tracks) {
+      const rect = track.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      if (touchY < midY) {
+        audioList.insertBefore(placeholder, track);
+        return;
+      }
     }
+
+    audioList.appendChild(placeholder);
+  });
+
+  audioList.addEventListener("touchend", () => {
+    if (!draggedElement || !placeholder) return;
+
+    draggedElement.style.position = "";
+    draggedElement.style.left = "";
+    draggedElement.style.top = "";
+    draggedElement.style.width = "";
+    draggedElement.style.zIndex = "";
+    draggedElement.style.transform = "";
+    draggedElement.classList.remove("dragging");
+
+    audioList.insertBefore(draggedElement, placeholder);
+    placeholder.remove();
+
+    placeholder = null;
+    draggedElement = null;
+    saveOrder();
+  });
+}
+
 
     // === Индикатор заполненности ===
     const settingsButton = document.getElementById("settingsButton");
