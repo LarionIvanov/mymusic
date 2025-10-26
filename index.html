@@ -139,17 +139,60 @@
         audioList.innerHTML = "";
 
         for (const file of sorted) {
-          const fileUrl = `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
-          const trackDiv = document.createElement("div");
-          trackDiv.classList.add("track");
-          trackDiv.draggable = true;
-          trackDiv.dataset.id = file.$id;
-          trackDiv.innerHTML = `
-            <strong>${file.name}</strong>
-            <audio controls src="${fileUrl}"></audio>
-          `;
-          audioList.appendChild(trackDiv);
+  const fileUrl = `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
+  const trackDiv = document.createElement("div");
+  trackDiv.classList.add("track");
+  trackDiv.draggable = true;
+  trackDiv.dataset.id = file.$id;
+
+  // --- 🔹 Создаём элемент с именем трека
+  const titleEl = document.createElement("strong");
+  titleEl.textContent = file.name;
+
+  // --- 🔹 Добавляем возможность редактировать имя по двойному клику
+  titleEl.addEventListener("dblclick", () => {
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = file.name;
+    input.style.width = "90%";
+    input.style.font = "inherit";
+
+    titleEl.replaceWith(input);
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+
+    const finishEdit = async (save) => {
+      if (save && input.value.trim() && input.value !== file.name) {
+        try {
+          await storage.updateFile(bucketId, file.$id, { name: input.value.trim() });
+          file.name = input.value.trim();
+        } catch (error) {
+          console.error("Ошибка при изменении имени:", error.message);
         }
+      }
+      input.replaceWith(titleEl);
+      titleEl.textContent = file.name;
+    };
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") finishEdit(true);
+      if (e.key === "Escape") finishEdit(false);
+    });
+
+    input.addEventListener("blur", () => finishEdit(true));
+  });
+
+  // --- 🔹 Создаём аудиоэлемент
+  const audioEl = document.createElement("audio");
+  audioEl.controls = true;
+  audioEl.src = fileUrl;
+
+  // --- 🔹 Добавляем оба элемента в контейнер
+  trackDiv.appendChild(titleEl);
+  trackDiv.appendChild(audioEl);
+  audioList.appendChild(trackDiv);
+}
+
 
         enableAutoPlay();
         enableDragAndDrop();
