@@ -235,15 +235,26 @@
     });
 
     // === Автовоспроизведение ===
-    function enableAutoPlay() {
-      const audios = document.querySelectorAll("audio");
-      audios.forEach((audio, index) => {
-        audio.addEventListener("ended", () => {
-          const nextAudio = audios[index + 1];
-          if (nextAudio) nextAudio.play();
-        });
+   function enableAutoPlay() {
+  const audios = document.querySelectorAll("audio");
+
+  audios.forEach((audio) => {
+    // Если пользователь вручную включает этот трек —
+    // останавливаем все остальные.
+    audio.addEventListener("play", () => {
+      audios.forEach((other) => {
+        if (other !== audio) other.pause();
       });
-    }
+    });
+
+    // После окончания трека включаем следующий
+    audio.addEventListener("ended", () => {
+      const nextAudio = audios[[...audios].indexOf(audio) + 1];
+      if (nextAudio) nextAudio.play();
+    });
+  });
+}
+
 
     // === Drag & Drop ===
     function enableDragAndDrop() {
