@@ -409,6 +409,58 @@
         const target = e.target.closest(".track");
         if (target) target.classList.remove("over");
       });
+
+      // --- Поддержка перетаскивания на мобильных устройствах ---
+let draggedElement = null;
+let touchStartY = 0;
+
+document.querySelectorAll('.track').forEach(track => {
+  // Начало касания
+  track.addEventListener('touchstart', (e) => {
+    draggedElement = track;
+    touchStartY = e.touches[0].clientY;
+    track.style.transition = 'none';
+    track.style.opacity = '0.6';
+  });
+
+  // Движение пальцем
+  track.addEventListener('touchmove', (e) => {
+    if (!draggedElement) return;
+
+    const touchY = e.touches[0].clientY;
+    const deltaY = touchY - touchStartY;
+
+    draggedElement.style.transform = `translateY(${deltaY}px)`;
+
+    const tracks = Array.from(document.querySelectorAll('.track'));
+    const currentIndex = tracks.indexOf(draggedElement);
+
+    // Определяем, над каким треком сейчас палец
+    for (let i = 0; i < tracks.length; i++) {
+      if (i !== currentIndex) {
+        const rect = tracks[i].getBoundingClientRect();
+        if (touchY > rect.top && touchY < rect.bottom) {
+          if (touchY < rect.top + rect.height / 2) {
+            tracks[i].before(draggedElement);
+          } else {
+            tracks[i].after(draggedElement);
+          }
+          break;
+        }
+      }
+    }
+  });
+
+  // Завершение касания
+  track.addEventListener('touchend', () => {
+    if (!draggedElement) return;
+    draggedElement.style.opacity = '1';
+    draggedElement.style.transform = 'none';
+    draggedElement.style.transition = 'transform 0.2s ease';
+    draggedElement = null;
+  });
+});
+
     }
 
     // === Запуск ===
