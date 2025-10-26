@@ -141,6 +141,37 @@
   transition: width 0.6s ease;
 }
 
+#settingsButton {
+  -webkit-tap-highlight-color: transparent; /* убираем серый фон при тапе */
+  outline: none;
+  border: none;
+  background: none;
+  transition: transform 0.2s ease;
+}
+
+#settingsButton:active {
+  transform: scale(0.95); /* небольшой отклик без мигания */
+}
+
+#storageOverlay {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: scale(0.98);
+}
+
+#storageOverlay.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+
+
+.track {
+  user-select: none; /* запрещаем выделение текста */
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  touch-action: none; /* отключаем стандартные жесты браузера */
+}
+
   </style>
 </head>
 <body>
@@ -430,6 +461,11 @@ modal.addEventListener("click", (e) => {
 });
 
     })();
+
+  storageOverlay.classList.add("visible");
+  storageOverlay.classList.remove("visible");
+
+
   </script>
 </body>
 </html>
