@@ -295,25 +295,34 @@
       });
     }
 
-    // ✅ Улучшенный Drag & Drop с плавной анимацией и корректным мобильным поведением
+    // ======== enableDragAndDrop() — long-press для запуска drag (mouse + touch) ========
 function enableDragAndDrop() {
+  const LONG_PRESS_MS = 400; // время удержания (ms) — можно уменьшать/увеличивать
   let draggedElement = null;
   let placeholder = null;
   let startY = 0;
   let offsetY = 0;
 
-  // === Desktop drag & drop ===
-  audioList.addEventListener("dragstart", (e) => {
-    draggedElement = e.target.closest(".track");
-    if (!draggedElement) return;
+  // для контроля long-press на мыши (native drag)
+  let mouseLongPressTimer = null;
+  let allowNativeDrag = false;
 
-    draggedElement.classList.add("dragging");
-    e.dataTransfer.effectAllowed = "move";
+  // --- Подавляем нативный dragstart, если не разрешено long-press'ом ---
+  audioList.addEventListener("dragstart", (e) => {
+    if (!allowNativeDrag) {
+      // если перетаскивание не разрешено (не прошло удержание) — отменяем
+      e.preventDefault();
+      return;
+    }
+    // если разрешено — установим draggedElement, как раньше
+    draggedElement = e.target.closest(".track");
+    if (draggedElement) draggedElement.classList.add("dragging");
   });
 
   audioList.addEventListener("dragend", () => {
     if (draggedElement) draggedElement.classList.remove("dragging");
     draggedElement = null;
+    allowNativeDrag = false;
     saveOrder();
   });
 
@@ -321,64 +330,128 @@ function enableDragAndDrop() {
     e.preventDefault();
     const target = e.target.closest(".track");
     if (!target || target === draggedElement) return;
-
     const rect = target.getBoundingClientRect();
     const next = e.clientY > rect.top + rect.height / 2;
     audioList.insertBefore(draggedElement, next ? target.nextSibling : target);
   });
 
-  // === Mobile touch drag & drop ===
+  // ---------------- MOUSE long-press (desktop) ----------------
+  audioList.addEventListener("mousedown", (e) => {
+    const target = e.target.closest(".track");
+    if (!target) return;
+    // стартуем таймер: если держат более LONG_PRESS_MS — разрешаем native drag
+    mouseLongPressTimer = setTimeout(() => {
+      allowNativeDrag = true;
+      // инициируем визуальную подсветку (пользователь теперь может начать перетаскивать)
+      target.classList.add("dragging");
+      // note: actual html5 drag will start when пользователь начнёт двигать мышь после long-press
+    }, LONG_PRESS_MS);
+
+    // если пользователь двигает мышью значительно до окончания таймера — отменяем (не long-press)
+    const onMouseMoveCancel = (moveEvent) => {
+      const dx = Math.abs(moveEvent.clientX - e.clientX);
+      const dy = Math.abs(moveEvent.clientY - e.clientY);
+      if (dx > 8 || dy > 8) { // порог — 8px
+        clearTimeout(mouseLongPressTimer);
+        mouseLongPressTimer = null;
+        audioList.removeEventListener("mousemove", onMouseMoveCancel);
+      }
+    };
+    audioList.addEventListener("mousemove", onMouseMoveCancel);
+
+    const onMouseUpClean = () => {
+      clearTimeout(mouseLongPressTimer);
+      mouseLongPressTimer = null;
+      allowNativeDrag = false;
+      audioList.removeEventListener("mousemove", onMouseMoveCancel);
+      document.removeEventListener("mouseup", onMouseUpClean);
+    };
+    document.addEventListener("mouseup", onMouseUpClean);
+  });
+
+  // ---------------- TOUCH long-press (mobile) ----------------
+  let touchLongPressTimer = null;
+  let touchMoved = false;
+
   audioList.addEventListener("touchstart", (e) => {
     const target = e.target.closest(".track");
     if (!target) return;
-    draggedElement = target;
 
-    startY = e.touches[0].clientY;
-    const rect = draggedElement.getBoundingClientRect();
+    touchMoved = false;
+    const touch = e.touches[0];
+    startY = touch.clientY;
+    const rect = target.getBoundingClientRect();
     offsetY = startY - rect.top;
 
-    placeholder = document.createElement("div");
-    placeholder.className = "track placeholder";
-    placeholder.style.height = `${rect.height}px`;
+    // стартуем таймер long-press — только после него начинаем "перетаскивать"
+    touchLongPressTimer = setTimeout(() => {
+      // создаём placeholder и переводим элемент в абсолют
+      draggedElement = target;
+      placeholder = document.createElement("div");
+      placeholder.className = "track placeholder";
+      placeholder.style.height = `${rect.height}px`;
+      target.parentNode.insertBefore(placeholder, target.nextSibling);
 
-    draggedElement.classList.add("dragging");
-    draggedElement.style.position = "absolute";
-    draggedElement.style.left = `${rect.left}px`;
-    draggedElement.style.top = `${rect.top}px`;
-    draggedElement.style.width = `${rect.width}px`;
-    draggedElement.style.zIndex = "1000";
-    draggedElement.style.transition = "transform 0.15s ease";
-
-    requestAnimationFrame(() => {
-      draggedElement.style.transform = "scale(1.03)";
-    });
-
-    draggedElement.parentNode.insertBefore(placeholder, draggedElement.nextSibling);
-  });
+      draggedElement.classList.add("dragging");
+      draggedElement.style.position = "absolute";
+      draggedElement.style.left = `${rect.left}px`;
+      draggedElement.style.top = `${rect.top}px`;
+      draggedElement.style.width = `${rect.width}px`;
+      draggedElement.style.zIndex = "1000";
+      // небольшой scale для ощущения "всплытия"
+      requestAnimationFrame(() => {
+        draggedElement.style.transform = "scale(1.03)";
+      });
+    }, LONG_PRESS_MS);
+  }, { passive: true });
 
   audioList.addEventListener("touchmove", (e) => {
-    if (!draggedElement) return;
-
-    e.preventDefault();
-    const touchY = e.touches[0].clientY;
-    draggedElement.style.top = `${touchY - offsetY}px`;
-
-    const tracks = [...audioList.querySelectorAll(".track:not(.dragging):not(.placeholder)")];
-    for (const track of tracks) {
-      const rect = track.getBoundingClientRect();
-      const midY = rect.top + rect.height / 2;
-      if (touchY < midY) {
-        audioList.insertBefore(placeholder, track);
+    // если до long-press палец уже сдвинулся — отменяем намерение
+    if (touchLongPressTimer && !draggedElement) {
+      const touch = e.touches[0];
+      if (Math.abs(touch.clientY - startY) > 10) {
+        clearTimeout(touchLongPressTimer);
+        touchLongPressTimer = null;
+        touchMoved = true;
         return;
       }
     }
 
-    audioList.appendChild(placeholder);
-  });
+    if (!draggedElement) return;
+    e.preventDefault(); // удерживаем прокрутку страницы
+
+    const touchY = e.touches[0].clientY;
+    draggedElement.style.top = `${touchY - offsetY}px`;
+
+    // находим место для placeholder (используем элементы без placeholder)
+    const tracks = [...audioList.querySelectorAll(".track:not(.dragging):not(.placeholder)")];
+    let placed = false;
+    for (const track of tracks) {
+      const rect = track.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      if (touchY < mid) {
+        audioList.insertBefore(placeholder, track);
+        placed = true;
+        break;
+      }
+    }
+    if (!placed) audioList.appendChild(placeholder);
+  }, { passive: false });
 
   audioList.addEventListener("touchend", () => {
-    if (!draggedElement || !placeholder) return;
+    // если long-press таймер ещё висит — просто отменяем (короткое нажатие)
+    if (touchLongPressTimer) {
+      clearTimeout(touchLongPressTimer);
+      touchLongPressTimer = null;
+    }
 
+    if (!draggedElement || !placeholder) {
+      draggedElement = null;
+      placeholder = null;
+      return;
+    }
+
+    // возвращаем элемент в поток, очищаем стили
     draggedElement.style.position = "";
     draggedElement.style.left = "";
     draggedElement.style.top = "";
@@ -389,11 +462,28 @@ function enableDragAndDrop() {
 
     audioList.insertBefore(draggedElement, placeholder);
     placeholder.remove();
-
     placeholder = null;
     draggedElement = null;
+
     saveOrder();
-  });
+  }, { passive: true });
+
+  // если пользователь отменил касание (например, скролл), очистим таймеры
+  audioList.addEventListener("touchcancel", () => {
+    if (touchLongPressTimer) { clearTimeout(touchLongPressTimer); touchLongPressTimer = null; }
+    if (draggedElement && placeholder) {
+      // восстановим нормальное состояние
+      draggedElement.style.position = "";
+      draggedElement.style.left = "";
+      draggedElement.style.top = "";
+      draggedElement.style.width = "";
+      draggedElement.style.zIndex = "";
+      draggedElement.classList.remove("dragging");
+      placeholder.remove();
+    }
+    draggedElement = null;
+    placeholder = null;
+  }, { passive: true });
 }
 
 
