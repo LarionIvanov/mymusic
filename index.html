@@ -184,6 +184,72 @@ button, input, strong, h1, .track {
   transition: all 0.2s ease;
 }
 
+/* --- 🔹 Кнопка ⋯ --- */
+.menu-button {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  border: none;
+  border-radius: 50%;
+  font-size: 20px;
+  color: white;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.menu-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* --- 🔹 Модальное окно --- */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+/* --- 🔹 Внутренний блок модального окна --- */
+.modal-content {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(20px);
+  border-radius: 14px;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* --- 🔹 Кнопка "Переименовать" --- */
+.rename-btn {
+  background: rgba(255, 255, 255, 0.35);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 16px;
+  color: #000;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.rename-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+
   </style>
 </head>
 <body>
@@ -284,6 +350,15 @@ button, input, strong, h1, .track {
       const titleEl = document.createElement("strong");
       titleEl.textContent = file.name;
 
+      // --- 🔹 Создаём кнопку меню (⋯)
+const menuButton = document.createElement("button");
+menuButton.textContent = "⋯";
+menuButton.classList.add("menu-button");
+
+// --- 🔹 Открываем модальное окно при клике
+menuButton.addEventListener("click", () => openRenameModal(file, titleEl));
+
+
       // --- 🔹 Добавляем возможность редактировать имя по двойному клику
       titleEl.addEventListener("dblclick", () => {
         const input = document.createElement("input");
@@ -322,10 +397,14 @@ button, input, strong, h1, .track {
       audioEl.controls = true;
       audioEl.src = fileUrl;
 
-      // --- 🔹 Добавляем оба элемента в контейнер
-      trackDiv.appendChild(titleEl);
-      trackDiv.appendChild(audioEl);
-      audioList.appendChild(trackDiv);
+    // --- 🔹 Добавляем все элементы в контейнер
+    trackDiv.style.position = "relative"; // чтобы можно было позиционировать кнопку ⋯
+    trackDiv.appendChild(menuButton);     // сначала кнопка ⋯
+    trackDiv.appendChild(titleEl);        // потом название трека
+    trackDiv.appendChild(audioEl);        // затем сам плеер
+
+    // добавляем карточку трека в список
+    audioList.appendChild(trackDiv);
     }
     // =======================================================================
 
@@ -496,6 +575,53 @@ button, input, strong, h1, .track {
 
   audioList.addEventListener("touchend", endTouch);
   audioList.addEventListener("touchcancel", endTouch);
+}
+
+function openRenameModal(file, titleEl) {
+  const modal = document.getElementById("renameModal");
+  const renameBtn = document.getElementById("renameAction");
+
+  modal.classList.remove("hidden");
+
+  // При клике по "Переименовать" — открываем input редактирования
+  renameBtn.onclick = () => {
+    modal.classList.add("hidden");
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.value = file.name;
+    input.style.width = "90%";
+    input.style.font = "inherit";
+
+    titleEl.replaceWith(input);
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+
+    const finishEdit = async (save) => {
+      if (save && input.value.trim() && input.value !== file.name) {
+        try {
+          await storage.updateFile(bucketId, file.$id, { name: input.value.trim() });
+          file.name = input.value.trim();
+        } catch (error) {
+          console.error("Ошибка при изменении имени:", error.message);
+        }
+      }
+      input.replaceWith(titleEl);
+      titleEl.textContent = file.name;
+    };
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") finishEdit(true);
+      if (e.key === "Escape") finishEdit(false);
+    });
+
+    input.addEventListener("blur", () => finishEdit(true));
+  };
+
+  // Клик вне окна — закрыть модалку
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) modal.classList.add("hidden");
+  });
 }
 
 
