@@ -249,43 +249,6 @@
       background: rgba(0,0,0,0.05);
     }
 
-    /* Уменьшение popup-окна */
-.rename-popup {
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  padding: 6px 10px;
-  width: auto;
-  height: auto;
-  z-index: 1000;
-}
-
-/* Кнопка внутри popup */
-.rename-popup button {
-  border: none;
-  background: none;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-size: 14px;
-  border-radius: 8px;
-}
-
-.rename-popup button:hover {
-  background: #f2f2f2;
-}
-
-/* Чтобы текст трека не наезжал на кнопку ⋯ */
-.track strong {
-  display: inline-block;
-  max-width: calc(100% - 40px); /* Оставляем место справа под кнопку */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  vertical-align: middle;
-}
-
-
     .track input[type="text"] {
       font: inherit;
       padding: 6px 8px;
@@ -298,6 +261,57 @@
     @media (max-width:420px) {
       #upload-section, #audioList { width: calc(100% - 3rem); }
     }
+
+    /* ===== Исправления внешнего вида popup-меню и текста ===== */
+
+/* Перенос названия на новую строку */
+.track strong {
+  display: block;
+  max-width: calc(100% - 40px); /* отступ под кнопку ⋯ */
+  word-wrap: break-word;
+  white-space: normal; /* разрешаем перенос строк */
+  line-height: 1.4;
+  margin-right: 8px;
+}
+
+/* Попап (меню "Переименовать") */
+.rename-popup {
+  position: absolute;
+  top: 36px;
+  right: 8px;
+  background: white;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  padding: 6px 10px;
+  width: max-content; /* ширина по контенту */
+  z-index: 1000;
+  opacity: 0;
+  transform: scale(0.95);
+  animation: popupFadeSimple 0.18s forwards ease-out;
+  font: inherit; /* наследуем прежний шрифт */
+}
+
+/* Анимация плавного появления (без “вылета сверху”) */
+@keyframes popupFadeSimple {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Кнопка внутри popup */
+.rename-popup button {
+  border: none;
+  background: none;
+  padding: 6px 14px;
+  cursor: pointer;
+  font: inherit; /* оставляем прежний шрифт */
+  border-radius: 6px;
+}
+
+.rename-popup button:hover {
+  background: rgba(0,0,0,0.05);
+}
+
   </style>
 </head>
 <body>
