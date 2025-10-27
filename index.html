@@ -325,101 +325,179 @@
     }
 
     async function loadTracks() {
-      const orderDoc = await databases.getDocument(databaseId, collectionId, documentId);
-      let order = [];
-      try { order = JSON.parse(orderDoc.order || "[]"); } catch { order = []; }
-      const files = await storage.listFiles(bucketId);
-      const filesMap = {};
-      files.files.forEach(f => filesMap[f.$id] = f);
+  // Загружаем документ с порядком и именами
+  const orderDoc = await databases.getDocument(databaseId, collectionId, documentId);
+  
+  let order = [];
+  let names = {};
+  try { order = JSON.parse(orderDoc.order || "[]"); } catch { order = []; }
+  try { names = JSON.parse(orderDoc.names || "{}"); } catch { names = {}; }
 
-      const sorted = order.map(id => filesMap[id])
-        .filter(Boolean)
-        .concat(files.files.filter(f => !order.includes(f.$id)));
+  // Получаем список файлов
+  const files = await storage.listFiles(bucketId);
+  const filesMap = {};
+  files.files.forEach(f => filesMap[f.$id] = f);
 
-      audioList.innerHTML = "";
+  // Сортируем по сохранённому порядку
+  const sorted = order.map(id => filesMap[id])
+    .filter(Boolean)
+    .concat(files.files.filter(f => !order.includes(f.$id)));
 
-      for (const file of sorted) {
-        const fileUrl =
-          `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
-        const trackDiv = document.createElement("div");
-        trackDiv.classList.add("track");
-        trackDiv.draggable = true;
-        trackDiv.dataset.id = file.$id;
+  audioList.innerHTML = "";
 
-        const titleEl = document.createElement("strong");
-        titleEl.textContent = file.name;
+  // Создаём DOM-элементы для каждого трека
+  for (const file of sorted) {
+    const fileUrl =
+      `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
+    const trackDiv = document.createElement("div");
+    trackDiv.classList.add("track");
+    trackDiv.draggable = true;
+    trackDiv.dataset.id = file.$id;
 
-        const menuButton = document.createElement("button");
-        menuButton.textContent = "⋯";
-        menuButton.classList.add("menu-button");
-        menuButton.addEventListener("click", e=>{
-          e.stopPropagation();
-          togglePopupMenu(file, titleEl, menuButton);
-        });
+    // Имя берём из names, если оно есть
+    const titleEl = document.createElement("strong");
+    titleEl.textContent = names[file.$id] || file.name;
 
-        const audioEl = document.createElement("audio");
-        audioEl.controls = true;
-        audioEl.src = fileUrl;
+    const menuButton = document.createElement("button");
+    menuButton.textContent = "⋯";
+    menuButton.classList.add("menu-button");
+    menuButton.addEventListener("click", e => {
+      e.stopPropagation();
+      togglePopupMenu(file, titleEl, menuButton);
+    });
 
-        trackDiv.append(menuButton,titleEl,audioEl);
-        audioList.appendChild(trackDiv);
-      }
-      enableAutoPlay();
-      enableDragAndDrop();
-    }
+    const audioEl = document.createElement("audio");
+    audioEl.controls = true;
+    audioEl.src = fileUrl;
 
-    function togglePopupMenu(file, titleEl, btn) {
-      closeAllPopups();
-      const popup = document.createElement("div");
-      popup.className = "rename-popup";
-      popup.innerHTML = `<button>Переименовать</button>`;
-      popup.querySelector("button").addEventListener("click", ()=>{
-        popup.remove();
-        beginInlineRename(file,titleEl);
-      });
-      btn.parentNode.appendChild(popup);
-      document.addEventListener("click", e=>{
-        if (!popup.contains(e.target) && e.target!==btn) popup.remove();
-      },{once:true});
-    }
+    trackDiv.append(menuButton, titleEl, audioEl);
+    audioList.appendChild(trackDiv);
+  }
 
-    function closeAllPopups() {
-      document.querySelectorAll(".rename-popup").forEach(p=>p.remove());
-    }
+  enableAutoPlay();
+  enableDragAndDrop();
+}
 
-    function beginInlineRename(file, titleEl) {
+
+  function togglePopupMenu(file, titleEl, btn) {
+  closeAllPopups(); // Закрываем все открытые окна
+
+  const popup = document.createElement("div");
+  popup.className = "rename-popup";
+  popup.innerHTML = `<button>Переименовать</button>`;
+
+  // --- При клике на кнопку "Переименовать"
+  popup.querySelector("button").addEventListener("click", () => {
+    popup.remove();
+    beginInlineRename(file.$id, titleEl); // теперь передаём только ID
+  });
+
+  // Добавляем попап в общий контейнер (чтобы не обрезался overflow)
+  document.body.appendChild(popup);
+
+  // --- Позиционирование рядом с кнопкой ⋯
+  const rect = btn.getBoundingClientRect();
+  const popupWidth = 120; // примерная ширина окна
+  const popupHeight = 50; // примерная высота окна
+
+  let left = rect.right - popupWidth;
+  let top = rect.bottom + 6;
+
+  // Если попап выходит за границы экрана — сдвигаем внутрь
+  if (left < 8) left = 8;
+  if (top + popupHeight > window.innerHeight) top = rect.top - popupHeight - 8;
+
+  popup.style.position = "fixed";
+  popup.style.left = `${left}px`;
+  popup.style.top = `${top}px`;
+  popup.style.opacity = "0";
+  popup.style.transform = "translateY(-5px) scale(0.95)";
+
+  // --- Анимация появления (мягкое выплывание)
+  requestAnimationFrame(() => {
+    popup.style.transition = "all 0.2s ease";
+    popup.style.opacity = "1";
+    popup.style.transform = "translateY(0) scale(1)";
+  });
+
+  // --- Закрытие по клику вне окна
+  setTimeout(() => {
+    document.addEventListener(
+      "click",
+      (e) => {
+        if (!popup.contains(e.target) && e.target !== btn) popup.remove();
+      },
+      { once: true }
+    );
+  }, 0);
+}
+
+// --- Функция для закрытия всех активных popup-окон
+function closeAllPopups() {
+  document.querySelectorAll(".rename-popup").forEach((p) => p.remove());
+}
+
+
+    async function beginInlineRename(fileId, titleEl) {
+  const oldName = titleEl.textContent;
   const input = document.createElement("input");
   input.type = "text";
-  input.value = file.name;
+  input.value = oldName;
+  input.classList.add("rename-input");
   titleEl.replaceWith(input);
   input.focus();
 
-  // 🔹 временно отключаем drag у трека
-  const parentTrack = input.closest(".track");
-  if (parentTrack) parentTrack.draggable = false;
+  // Отключаем drag & drop, пока идёт редактирование
+  const allTracks = document.querySelectorAll(".track");
+  allTracks.forEach(t => t.draggable = false);
 
-  const finish = async (save) => {
-    if (save && input.value.trim() !== file.name) {
-      try {
-        await storage.updateFile(bucketId, file.$id, { name: input.value.trim() });
-        file.name = input.value.trim();
-      } catch (err) {
-        console.error(err);
-      }
-    }
-
-    // 🔹 возвращаем drag обратно
-    if (parentTrack) parentTrack.draggable = true;
-
+  // Функция для отмены и возврата старого состояния
+  const cancelRename = () => {
     input.replaceWith(titleEl);
-    titleEl.textContent = file.name;
+    titleEl.textContent = oldName;
+    allTracks.forEach(t => t.draggable = true);
   };
 
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") finish(true);
-    if (e.key === "Escape") finish(false);
+  // Функция для сохранения изменений
+  const saveRename = async () => {
+    const newName = input.value.trim();
+    if (!newName || newName === oldName) {
+      cancelRename();
+      return;
+    }
+
+    try {
+      // Получаем текущий документ
+      const orderDoc = await databases.getDocument(databaseId, collectionId, documentId);
+      let names = {};
+      try { names = JSON.parse(orderDoc.names || "{}"); } catch { names = {}; }
+
+      // Обновляем имя в объекте
+      names[fileId] = newName;
+
+      // Отправляем обновлённые данные в Appwrite
+      await databases.updateDocument(databaseId, collectionId, documentId, {
+        names: JSON.stringify(names)
+      });
+
+      // В интерфейсе обновляем текст
+      titleEl.textContent = newName;
+    } catch (err) {
+      console.error("Ошибка при сохранении имени:", err);
+      titleEl.textContent = oldName;
+    } finally {
+      input.replaceWith(titleEl);
+      allTracks.forEach(t => t.draggable = true);
+    }
+  };
+
+  // --- Обработчики событий ---
+  input.addEventListener("keydown", async e => {
+    if (e.key === "Enter") await saveRename();
+    if (e.key === "Escape") cancelRename();
   });
-  input.addEventListener("blur", () => finish(true));
+
+  input.addEventListener("blur", cancelRename);
 }
 
 
