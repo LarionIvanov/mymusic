@@ -167,35 +167,51 @@
     }
     #settingsButton:active { transform: scale(0.95); }
 
-    /* Кнопка ⋯ */
-    .menu-button {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      background: rgba(255,255,255,0.25);
-      border: none;
-      border-radius: 50%;
-      width: 28px;
-      height: 28px;
-      font-size: 18px;
-      color: #222;
-      cursor: pointer;
-      backdrop-filter: blur(10px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.15s ease;
-      z-index: 5;
-      line-height: 1;
-    }
-    .menu-button:hover {
-      transform: scale(1.06);
-      background: rgba(255,255,255,0.4);
-    }
-    .menu-button:active {
-      transform: none;
-      background: rgba(255,255,255,0.3);
-    }
+    /* Стабильная, немигающая кнопка ⋯ */
+  .menu-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* внешний вид */
+  background: rgba(255,255,255,0.25);
+  color: #222;
+  font-size: 18px;
+  border: none;
+  box-shadow: none;
+
+  /* поведение касаний */
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent; /* убирает iOS подсветку */
+  -webkit-appearance: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+
+  /* анимация только при hover/enter, не при активном касании */
+  transition: transform 0.12s ease, background 0.12s ease;
+  z-index: 5;
+}
+
+/* Ховер на десктопе — можно оставить */
+.menu-button:hover {
+  transform: scale(1.06);
+  background: rgba(255,255,255,0.4);
+}
+
+/* Ничего не менять при :active и при фокусе */
+.menu-button:active,
+.menu-button:focus {
+  outline: none;
+  transform: none;
+  background: rgba(255,255,255,0.25); /* тот же фон, чтобы ничего не мигало */
+}
+
 
     /* Локальное меню (⋯) */
     .rename-popup {
