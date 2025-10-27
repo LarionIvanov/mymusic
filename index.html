@@ -6,6 +6,7 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Моя музыка</title>
   <style>
+    /* ---- Базовая вёрстка ---- */
     body {
       font-family: sans-serif;
       background: white;
@@ -16,9 +17,7 @@
       padding: 2rem;
     }
 
-    h1 {
-      margin-bottom: 1rem;
-    }
+    h1 { margin-bottom: 1rem; }
 
     #upload-section {
       margin-bottom: 2rem;
@@ -50,20 +49,28 @@
       padding: 1rem;
       border-radius: 8px;
       background: #fafafa;
-      transition: all 0.2s ease;
       user-select: none;
       -webkit-user-select: none;
       -ms-user-select: none;
       touch-action: none;
       position: relative;
-      cursor: default; /* ✅ курсор не меняется */
+      transition: all 0.2s ease;
+      cursor: default; /* курсор не меняется при наведении */
     }
 
     .track.dragging {
       opacity: 0.6;
       background: #e0f7fa;
       transform: scale(1.02);
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .track.placeholder {
+      background: rgba(0,0,0,0.05);
+      border: 2px dashed #aaa;
+      border-radius: 8px;
+      height: 60px;
+      margin: 0.5rem 0;
     }
 
     audio {
@@ -80,11 +87,12 @@
       touch-action: manipulation;
     }
 
+    /* Кнопка ⚙️ */
     .settings-btn {
       position: fixed;
       top: 20px;
       right: 20px;
-      background: rgba(255, 255, 255, 0.5);
+      background: rgba(255,255,255,0.5);
       border: none;
       border-radius: 50%;
       font-size: 1.5rem;
@@ -95,16 +103,76 @@
       transition: all 0.3s ease;
     }
     .settings-btn:hover {
-      background: rgba(255, 255, 255, 0.7);
+      background: rgba(255,255,255,0.7);
       transform: rotate(30deg);
     }
 
-    /* === Кнопка ⋯ === */
+    /* Хранилище */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(5px);
+      transition: opacity 0.3s ease;
+      z-index: 900;
+    }
+    .modal.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .modal-content {
+      background: rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: center;
+      width: 300px;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 0 20px rgba(255,255,255,0.3);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.3);
+      animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { transform: scale(0.9); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg,#34c759,#00c3ff);
+      border-radius: 10px;
+      transition: width 0.6s ease;
+    }
+
+    #settingsButton {
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+      border: none;
+      background: none;
+      transition: transform 0.2s ease;
+    }
+    #settingsButton:active { transform: scale(0.95); }
+
+    /* Кнопка ⋯ */
     .menu-button {
       position: absolute;
       top: 8px;
       right: 8px;
-      background: rgba(255, 255, 255, 0.25);
+      background: rgba(255,255,255,0.25);
       border: none;
       border-radius: 50%;
       width: 28px;
@@ -116,69 +184,66 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.2s ease;
-      -webkit-tap-highlight-color: transparent;
+      transition: all 0.15s ease;
+      z-index: 5;
+      line-height: 1;
     }
-
     .menu-button:hover {
-      background: rgba(255, 255, 255, 0.5);
-      transform: scale(1.1);
+      transform: scale(1.06);
+      background: rgba(255,255,255,0.4);
     }
-
     .menu-button:active {
-      transform: none; /* ✅ убираем мигание */
+      transform: none;
+      background: rgba(255,255,255,0.3);
     }
 
-    /* === Мини-модалка рядом с треком === */
-    .mini-modal {
+    /* Локальное меню (⋯) */
+    .rename-popup {
       position: absolute;
-      background: rgba(255,255,255,0.25);
-      backdrop-filter: blur(20px);
-      border-radius: 12px;
-      padding: 0.5rem 1rem;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      top: 36px;
+      right: 8px;
+      background: white;
+      border: 1px solid rgba(0,0,0,0.1);
+      border-radius: 10px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+      padding: 0.5rem 0.75rem;
+      z-index: 20;
       opacity: 0;
-      transform: scale(0.9);
-      transition: opacity 0.15s ease, transform 0.15s ease;
-      z-index: 9999;
+      transform: translateY(-5px) scale(0.95);
+      transition: all 0.2s ease;
+      animation: popupFade 0.25s forwards;
     }
 
-    .mini-modal.show {
-      opacity: 1;
-      transform: scale(1);
+    @keyframes popupFade {
+      from { opacity: 0; transform: translateY(-5px) scale(0.95); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
-    .rename-btn {
-      background: rgba(255,255,255,0.35);
+    .rename-popup button {
+      background: none;
       border: none;
-      border-radius: 8px;
-      padding: 6px 14px;
-      font-size: 15px;
-      color: #000;
+      font: inherit;
+      color: #222;
+      padding: 0.3rem 0.5rem;
       cursor: pointer;
-      transition: background 0.2s ease;
+      border-radius: 6px;
+      transition: background 0.15s ease;
+    }
+    .rename-popup button:hover {
+      background: rgba(0,0,0,0.05);
     }
 
-    .rename-btn:hover {
-      background: rgba(255,255,255,0.55);
+    .track input[type="text"] {
+      font: inherit;
+      padding: 6px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(0,0,0,0.08);
+      width: 90%;
+      box-sizing: border-box;
     }
 
-    /* Прогресс-бар */
-    .progress-bar {
-      width: 100%;
-      height: 14px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 1rem 0;
-    }
-
-    .progress-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #34c759, #00c3ff);
-      border-radius: 10px;
-      transition: width 0.6s ease;
+    @media (max-width:420px) {
+      #upload-section, #audioList { width: calc(100% - 3rem); }
     }
   </style>
 </head>
@@ -204,17 +269,17 @@
   </div>
 
   <script>
-    // --- Отключаем масштабирование в Safari ---
     let lastTouchEnd = 0;
-    document.addEventListener('touchend', e => {
+    document.addEventListener('touchend', e=>{
       const now = Date.now();
       if (now - lastTouchEnd <= 300) e.preventDefault();
       lastTouchEnd = now;
-    }, { passive: false });
+    },{passive:false});
   </script>
 
   <script type="module">
-    import { Client, Storage, Account, ID, Databases } from "https://cdn.jsdelivr.net/npm/appwrite@13.0.0/+esm";
+    import { Client, Storage, Account, Databases }
+      from "https://cdn.jsdelivr.net/npm/appwrite@13.0.0/+esm";
 
     const client = new Client()
       .setEndpoint("https://cloud.appwrite.io/v1")
@@ -231,156 +296,165 @@
     const fileInput = document.getElementById("fileInput");
     const uploadButton = document.getElementById("uploadButton");
     const audioList = document.getElementById("audioList");
+    const statusText = document.getElementById("status");
+    const storageModal = document.getElementById("storageModal");
+    const settingsButton = document.getElementById("settingsButton");
+    const progressFill = document.getElementById("progressFill");
+    const storageInfo = document.getElementById("storageInfo");
+    const MAX_STORAGE_MB = 2048;
 
     async function ensureAnonymousSession() {
       try { await account.get(); }
       catch { await account.createAnonymousSession(); }
     }
 
-    // === Модалка для кнопки ⋯ ===
-    const miniModal = document.createElement("div");
-    miniModal.classList.add("mini-modal");
-    miniModal.innerHTML = `<button id="renameBtn" class="rename-btn">Переименовать</button>`;
-    document.body.appendChild(miniModal);
-
-    const renameBtn = miniModal.querySelector("#renameBtn");
-    let currentFile = null, currentTitleEl = null;
-
-    renameBtn.addEventListener("click", async () => {
-      miniModal.classList.remove("show");
-      const newName = prompt("Введите новое имя трека:", currentFile.name);
-      if (newName && newName.trim() && newName !== currentFile.name) {
-        try {
-          await storage.updateFile(bucketId, currentFile.$id, { name: newName.trim() });
-          currentFile.name = newName.trim();
-          currentTitleEl.textContent = currentFile.name;
-        } catch (error) {
-          console.error("Ошибка при изменении имени:", error.message);
-        }
-      }
-    });
-
-    function openRenameModal(file, titleEl, button) {
-      currentFile = file;
-      currentTitleEl = titleEl;
-      const rect = button.getBoundingClientRect();
-      miniModal.style.top = `${rect.bottom + 6 + window.scrollY}px`;
-      miniModal.style.left = `${rect.right - 160}px`;
-      miniModal.classList.add("show");
-    }
-
-    document.addEventListener("click", e => {
-      if (!miniModal.contains(e.target) && !e.target.classList.contains("menu-button")) {
-        miniModal.classList.remove("show");
-      }
-    });
-
     async function loadTracks() {
       const orderDoc = await databases.getDocument(databaseId, collectionId, documentId);
       let order = [];
-      try { order = JSON.parse(orderDoc.order || "[]"); } catch {}
+      try { order = JSON.parse(orderDoc.order || "[]"); } catch { order = []; }
       const files = await storage.listFiles(bucketId);
-      const map = Object.fromEntries(files.files.map(f => [f.$id, f]));
-      const sorted = order.map(id => map[id]).filter(Boolean)
+      const filesMap = {};
+      files.files.forEach(f => filesMap[f.$id] = f);
+
+      const sorted = order.map(id => filesMap[id])
+        .filter(Boolean)
         .concat(files.files.filter(f => !order.includes(f.$id)));
+
       audioList.innerHTML = "";
+
       for (const file of sorted) {
-        const url = `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
-        const div = document.createElement("div");
-        div.classList.add("track");
-        div.draggable = true;
-        div.dataset.id = file.$id;
-        const title = document.createElement("strong");
-        title.textContent = file.name;
+        const fileUrl =
+          `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
+        const trackDiv = document.createElement("div");
+        trackDiv.classList.add("track");
+        trackDiv.draggable = true;
+        trackDiv.dataset.id = file.$id;
 
-        // двойной клик (ПК)
-        title.addEventListener("dblclick", () => {
-          const input = document.createElement("input");
-          input.type = "text";
-          input.value = file.name;
-          input.style.width = "90%";
-          input.style.font = "inherit";
-          title.replaceWith(input);
-          input.focus();
-          input.addEventListener("keydown", e => {
-            if (e.key === "Enter") finish(true);
-            if (e.key === "Escape") finish(false);
-          });
-          input.addEventListener("blur", () => finish(true));
-          async function finish(save) {
-            if (save && input.value.trim() && input.value !== file.name) {
-              await storage.updateFile(bucketId, file.$id, { name: input.value.trim() });
-              file.name = input.value.trim();
-            }
-            input.replaceWith(title);
-            title.textContent = file.name;
-          }
-        });
+        const titleEl = document.createElement("strong");
+        titleEl.textContent = file.name;
 
-        const btn = document.createElement("button");
-        btn.textContent = "⋯";
-        btn.classList.add("menu-button");
-        btn.addEventListener("click", e => {
+        const menuButton = document.createElement("button");
+        menuButton.textContent = "⋯";
+        menuButton.classList.add("menu-button");
+        menuButton.addEventListener("click", e=>{
           e.stopPropagation();
-          openRenameModal(file, title, btn);
+          togglePopupMenu(file, titleEl, menuButton);
         });
 
-        const audio = document.createElement("audio");
-        audio.controls = true;
-        audio.src = url;
+        const audioEl = document.createElement("audio");
+        audioEl.controls = true;
+        audioEl.src = fileUrl;
 
-        div.append(btn, title, audio);
-        audioList.appendChild(div);
+        trackDiv.append(menuButton,titleEl,audioEl);
+        audioList.appendChild(trackDiv);
       }
-      enableDragAndDrop();
       enableAutoPlay();
+      enableDragAndDrop();
     }
 
-    async function saveOrder() {
-      const order = [...audioList.children].map(e => e.dataset.id);
-      await databases.updateDocument(databaseId, collectionId, documentId, {
-        order: JSON.stringify(order),
+    function togglePopupMenu(file, titleEl, btn) {
+      closeAllPopups();
+      const popup = document.createElement("div");
+      popup.className = "rename-popup";
+      popup.innerHTML = `<button>Переименовать</button>`;
+      popup.querySelector("button").addEventListener("click", ()=>{
+        popup.remove();
+        beginInlineRename(file,titleEl);
       });
+      btn.parentNode.appendChild(popup);
+      document.addEventListener("click", e=>{
+        if (!popup.contains(e.target) && e.target!==btn) popup.remove();
+      },{once:true});
     }
 
-    function enableAutoPlay() {
-      const audios = document.querySelectorAll("audio");
-      audios.forEach(a => {
-        a.addEventListener("play", () => audios.forEach(b => b !== a && (b.pause(), b.currentTime = 0)));
-        a.addEventListener("ended", () => {
-          const next = audios[[...audios].indexOf(a) + 1];
-          if (next) next.play();
+    function closeAllPopups() {
+      document.querySelectorAll(".rename-popup").forEach(p=>p.remove());
+    }
+
+    function beginInlineRename(file,titleEl){
+      const input=document.createElement("input");
+      input.type="text";
+      input.value=file.name;
+      titleEl.replaceWith(input);
+      input.focus();
+      const finish=async(save)=>{
+        if(save && input.value.trim()!==file.name){
+          try{
+            await storage.updateFile(bucketId,file.$id,{name:input.value.trim()});
+            file.name=input.value.trim();
+          }catch(err){console.error(err);}
+        }
+        input.replaceWith(titleEl);
+        titleEl.textContent=file.name;
+      };
+      input.addEventListener("keydown",e=>{
+        if(e.key==="Enter")finish(true);
+        if(e.key==="Escape")finish(false);
+      });
+      input.addEventListener("blur",()=>finish(true));
+    }
+
+    function enableAutoPlay(){
+      const audios=audioList.querySelectorAll("audio");
+      audios.forEach(a=>{
+        a.addEventListener("play",()=>{
+          audios.forEach(o=>{if(o!==a){o.pause();o.currentTime=0;}});
+        });
+        a.addEventListener("ended",()=>{
+          const arr=[...audios];
+          const next=arr[arr.indexOf(a)+1];
+          if(next)next.play();
         });
       });
     }
 
-    function enableDragAndDrop() {
-      let dragged = null;
-      audioList.addEventListener("dragstart", e => {
-        dragged = e.target.closest(".track");
-        if (!dragged) return;
+    function enableDragAndDrop(){
+      let dragged=null;
+      audioList.addEventListener("dragstart",e=>{
+        dragged=e.target.closest(".track");
+        if(!dragged)return;
         dragged.classList.add("dragging");
-        e.dataTransfer.effectAllowed = "move";
       });
-      audioList.addEventListener("dragend", () => {
-        if (dragged) dragged.classList.remove("dragging");
-        dragged = null;
-        saveOrder();
+      audioList.addEventListener("dragend",()=>{
+        if(dragged)dragged.classList.remove("dragging");
+        dragged=null; saveOrder();
       });
-      audioList.addEventListener("dragover", e => {
+      audioList.addEventListener("dragover",e=>{
         e.preventDefault();
-        const target = e.target.closest(".track");
-        if (!target || target === dragged) return;
-        const rect = target.getBoundingClientRect();
-        const next = e.clientY > rect.top + rect.height / 2;
-        audioList.insertBefore(dragged, next ? target.nextSibling : target);
+        const t=e.target.closest(".track");
+        if(!t||t===dragged)return;
+        const rect=t.getBoundingClientRect();
+        const next=e.clientY>rect.top+rect.height/2;
+        audioList.insertBefore(dragged,next?t.nextSibling:t);
       });
     }
 
-    (async () => {
-      await ensureAnonymousSession();
-      await loadTracks();
-    })();
+    async function saveOrder(){
+      const order=[...audioList.children].map(el=>el.dataset.id);
+      await databases.updateDocument(databaseId,collectionId,documentId,{
+        order:JSON.stringify(order),
+      });
+    }
+
+    async function updateStorageUsage(){
+      const files=await storage.listFiles(bucketId);
+      let total=0; files.files.forEach(f=>total+=f.sizeOriginal);
+      const used=(total/1024/1024).toFixed(1);
+      const pct=Math.min((used/MAX_STORAGE_MB)*100,100).toFixed(1);
+      progressFill.style.width=`${pct}%`;
+      storageInfo.textContent=`${used} МБ из ${MAX_STORAGE_MB} МБ (${pct}%)`;
+    }
+
+    settingsButton.addEventListener("click",async()=>{
+      const hidden=storageModal.classList.contains("hidden");
+      if(hidden){await updateStorageUsage();storageModal.classList.remove("hidden");}
+      else storageModal.classList.add("hidden");
+    });
+    storageModal.addEventListener("click",e=>{
+      if(e.target===storageModal)storageModal.classList.add("hidden");
+    });
+
+    (async()=>{await ensureAnonymousSession();await loadTracks();})();
   </script>
 </body>
 </html>
