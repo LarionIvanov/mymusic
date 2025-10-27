@@ -387,28 +387,41 @@
       document.querySelectorAll(".rename-popup").forEach(p=>p.remove());
     }
 
-    function beginInlineRename(file,titleEl){
-      const input=document.createElement("input");
-      input.type="text";
-      input.value=file.name;
-      titleEl.replaceWith(input);
-      input.focus();
-      const finish=async(save)=>{
-        if(save && input.value.trim()!==file.name){
-          try{
-            await storage.updateFile(bucketId,file.$id,{name:input.value.trim()});
-            file.name=input.value.trim();
-          }catch(err){console.error(err);}
-        }
-        input.replaceWith(titleEl);
-        titleEl.textContent=file.name;
-      };
-      input.addEventListener("keydown",e=>{
-        if(e.key==="Enter")finish(true);
-        if(e.key==="Escape")finish(false);
-      });
-      input.addEventListener("blur",()=>finish(true));
+    function beginInlineRename(file, titleEl) {
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = file.name;
+  titleEl.replaceWith(input);
+  input.focus();
+
+  // 🔹 временно отключаем drag у трека
+  const parentTrack = input.closest(".track");
+  if (parentTrack) parentTrack.draggable = false;
+
+  const finish = async (save) => {
+    if (save && input.value.trim() !== file.name) {
+      try {
+        await storage.updateFile(bucketId, file.$id, { name: input.value.trim() });
+        file.name = input.value.trim();
+      } catch (err) {
+        console.error(err);
+      }
     }
+
+    // 🔹 возвращаем drag обратно
+    if (parentTrack) parentTrack.draggable = true;
+
+    input.replaceWith(titleEl);
+    titleEl.textContent = file.name;
+  };
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") finish(true);
+    if (e.key === "Escape") finish(false);
+  });
+  input.addEventListener("blur", () => finish(true));
+}
+
 
     function enableAutoPlay(){
       const audios=audioList.querySelectorAll("audio");
