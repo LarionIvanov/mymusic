@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Моя музыка</title>
   <style>
     body {
@@ -76,6 +76,17 @@
       width: 100%;
       margin-top: 0.5rem;
     }
+
+    /* Отключить масштабирование при двойном тапе на iOS Safari */
+html, body {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+button, input, strong, h1, .track {
+  touch-action: manipulation;
+}
+
 
     /* Кнопка-шестерёнка */
     .settings-btn {
