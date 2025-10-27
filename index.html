@@ -263,39 +263,39 @@
     }
 
     /* ===== Исправления внешнего вида popup-меню и текста ===== */
-
-/* Перенос названия на новую строку */
-.track strong {
-  display: block;
-  max-width: calc(100% - 40px); /* отступ под кнопку ⋯ */
-  word-wrap: break-word;
-  white-space: normal; /* разрешаем перенос строк */
-  line-height: 1.4;
-  margin-right: 8px;
+    /* Контейнер трека должен быть относительно позиционирован */
+.track {
+  position: relative;
 }
 
-/* Попап (меню "Переименовать") */
+/* Попап меню (окно "Переименовать") */
 .rename-popup {
   position: absolute;
-  top: 36px;
-  right: 8px;
+  top: 32px; /* немного ниже кнопки ⋯ */
+  right: 6px;
   background: white;
-  border: 1px solid rgba(0,0,0,0.1);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  padding: 6px 10px;
-  width: max-content; /* ширина по контенту */
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  padding: 6px 12px;
+  width: max-content;
   z-index: 1000;
   opacity: 0;
-  transform: scale(0.95);
-  animation: popupFadeSimple 0.18s forwards ease-out;
-  font: inherit; /* наследуем прежний шрифт */
+  transform: translateY(-4px) scale(0.98);
+  animation: popupAppear 0.18s forwards cubic-bezier(0.22, 1, 0.36, 1);
+  font: inherit;
 }
 
-/* Анимация плавного появления (без “вылета сверху”) */
-@keyframes popupFadeSimple {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
+/* Анимация плавного “всплытия” */
+@keyframes popupAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Кнопка внутри popup */
@@ -304,13 +304,15 @@
   background: none;
   padding: 6px 14px;
   cursor: pointer;
-  font: inherit; /* оставляем прежний шрифт */
+  font: inherit;
   border-radius: 6px;
+  transition: background 0.15s ease;
 }
 
 .rename-popup button:hover {
-  background: rgba(0,0,0,0.05);
+  background: rgba(0, 0, 0, 0.05);
 }
+
 
   </style>
 </head>
