@@ -2,10 +2,10 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Моя музыка</title>
   <style>
-    /* ---- Базовая вёрстка ---- */
     body {
       font-family: sans-serif;
       background: white;
@@ -50,13 +50,13 @@
       padding: 1rem;
       border-radius: 8px;
       background: #fafafa;
-      cursor: grab;
       transition: all 0.2s ease;
       user-select: none;
       -webkit-user-select: none;
       -ms-user-select: none;
       touch-action: none;
-      position: relative; /* удобно для кнопки меню */
+      position: relative;
+      cursor: default; /* ✅ курсор не меняется */
     }
 
     .track.dragging {
@@ -66,20 +66,11 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     }
 
-    .track.placeholder {
-      background: rgba(0, 0, 0, 0.05);
-      border: 2px dashed #aaa;
-      border-radius: 8px;
-      height: 60px;
-      margin: 0.5rem 0;
-    }
-
     audio {
       width: 100%;
       margin-top: 0.5rem;
     }
 
-    /* Отключить масштабирование при двойном тапе на iOS Safari */
     html, body {
       touch-action: manipulation;
       -webkit-text-size-adjust: 100%;
@@ -89,7 +80,6 @@
       touch-action: manipulation;
     }
 
-    /* Кнопка-шестерёнка (Storage) */
     .settings-btn {
       position: fixed;
       top: 20px;
@@ -109,81 +99,7 @@
       transform: rotate(30deg);
     }
 
-    /* Стили модального окна (storage) */
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(5px);
-      transition: opacity 0.3s ease;
-      z-index: 900;
-    }
-    .modal.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    /* Содержимое окна (storage) */
-    .modal-content {
-      background: rgba(255,255,255,0.15);
-      border-radius: 20px;
-      padding: 2rem;
-      text-align: center;
-      width: 300px;
-      backdrop-filter: blur(15px);
-      box-shadow: 0 0 20px rgba(255,255,255,0.3);
-      color: #fff;
-      border: 1px solid rgba(255,255,255,0.3);
-      animation: fadeIn 0.4s ease;
-    }
-    @keyframes fadeIn {
-      from { transform: scale(0.9); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
-    /* Прогресс-бар */
-    .progress-bar {
-      width: 100%;
-      height: 14px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 10px;
-      overflow: hidden;
-      margin: 1rem 0;
-    }
-    .progress-fill {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #34c759, #00c3ff);
-      border-radius: 10px;
-      transition: width 0.6s ease;
-    }
-
-    #settingsButton {
-      -webkit-tap-highlight-color: transparent;
-      outline: none;
-      border: none;
-      background: none;
-      transition: transform 0.2s ease;
-    }
-    #settingsButton:active { transform: scale(0.95); }
-
-    .track.dragging {
-      opacity: 0.7;
-      transform: scale(1.02);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .track.placeholder {
-      border: 2px dashed #00c3ff;
-      background: rgba(0, 195, 255, 0.1);
-      border-radius: 8px;
-      transition: all 0.2s ease;
-    }
-
-    /* --- Кнопка ⋯ --- */
+    /* === Кнопка ⋯ === */
     .menu-button {
       position: absolute;
       top: 8px;
@@ -200,63 +116,69 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.15s ease;
-      z-index: 5;
-      line-height: 1;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
     }
-    .menu-button:hover { transform: scale(1.06); background: rgba(255,255,255,0.4); }
-    .menu-button:active { transform: scale(0.96); }
 
-    /* --- Модалка переименования (маленькая) --- */
-    .rename-modal {
-      position: fixed;
-      inset: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: rgba(0,0,0,0.25);
-      backdrop-filter: blur(8px);
-      z-index: 1000;
+    .menu-button:hover {
+      background: rgba(255, 255, 255, 0.5);
+      transform: scale(1.1);
     }
-    .rename-modal.hidden { display: none; pointer-events: none; }
 
-    .rename-content {
-      background: rgba(255,255,255,0.18);
-      backdrop-filter: blur(18px);
-      border-radius: 14px;
-      padding: 12px 18px;
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    .menu-button:active {
+      transform: none; /* ✅ убираем мигание */
+    }
+
+    /* === Мини-модалка рядом с треком === */
+    .mini-modal {
+      position: absolute;
+      background: rgba(255,255,255,0.25);
+      backdrop-filter: blur(20px);
+      border-radius: 12px;
+      padding: 0.5rem 1rem;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      opacity: 0;
+      transform: scale(0.9);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      z-index: 9999;
+    }
+
+    .mini-modal.show {
+      opacity: 1;
+      transform: scale(1);
     }
 
     .rename-btn {
+      background: rgba(255,255,255,0.35);
       border: none;
-      border-radius: 10px;
-      padding: 8px 16px;
-      background: rgba(255,255,255,0.28);
-      color: #111;
-      font-weight: 600;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-size: 15px;
+      color: #000;
       cursor: pointer;
-      transition: background 0.15s ease, transform 0.08s ease;
-    }
-    .rename-btn:hover { background: rgba(255,255,255,0.45); }
-    .rename-btn:active { transform: scale(0.98); }
-
-    /* input (редактирование) */
-    .track input[type="text"] {
-      font: inherit;
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid rgba(0,0,0,0.08);
-      width: 90%;
-      box-sizing: border-box;
+      transition: background 0.2s ease;
     }
 
-    /* мелкие адаптивы */
-    @media (max-width: 420px) {
-      #upload-section, #audioList { width: calc(100% - 3rem); }
+    .rename-btn:hover {
+      background: rgba(255,255,255,0.55);
+    }
+
+    /* Прогресс-бар */
+    .progress-bar {
+      width: 100%;
+      height: 14px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #34c759, #00c3ff);
+      border-radius: 10px;
+      transition: width 0.6s ease;
     }
   </style>
 </head>
@@ -271,53 +193,32 @@
 
   <div id="audioList"></div>
 
-  <!-- Кнопка настройки -->
   <button id="settingsButton" class="settings-btn">⚙️</button>
 
-  <!-- Модальное окно хранения -->
   <div id="storageModal" class="modal hidden">
     <div class="modal-content">
       <h2>Хранилище</h2>
-      <div class="progress-bar">
-        <div id="progressFill" class="progress-fill"></div>
-      </div>
+      <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
       <p id="storageInfo"></p>
     </div>
   </div>
 
-  <!-- Мини-модалка переименования (размещаем перед модульным скриптом,
-       чтобы модуль мог получить элемент по id сразу при инициализации) -->
-  <div id="renameModal" class="rename-modal hidden" aria-hidden="true">
-    <div class="rename-content">
-      <button id="renameAction" class="rename-btn">Переименовать</button>
-    </div>
-  </div>
-
-  <!-- script: запрет двойного тапа зума (не модульный, должен быть до module) -->
   <script>
-    // Отключаем нативный масштаб при двойном тапе (iOS Safari workaround)
+    // --- Отключаем масштабирование в Safari ---
     let lastTouchEnd = 0;
-    document.addEventListener(
-      'touchend',
-      (event) => {
-        const now = Date.now();
-        if (now - lastTouchEnd <= 300) {
-          event.preventDefault();
-        }
-        lastTouchEnd = now;
-      },
-      { passive: false }
-    );
+    document.addEventListener('touchend', e => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) e.preventDefault();
+      lastTouchEnd = now;
+    }, { passive: false });
   </script>
 
-  <!-- Основной модульный скрипт -->
   <script type="module">
-    import { Client, Storage, Account, Databases } from "https://cdn.jsdelivr.net/npm/appwrite@13.0.0/+esm";
+    import { Client, Storage, Account, ID, Databases } from "https://cdn.jsdelivr.net/npm/appwrite@13.0.0/+esm";
 
     const client = new Client()
       .setEndpoint("https://cloud.appwrite.io/v1")
       .setProject("68edff2c00028e4b809b");
-
     const account = new Account(client);
     const storage = new Storage(client);
     const databases = new Databases(client);
@@ -330,346 +231,152 @@
     const fileInput = document.getElementById("fileInput");
     const uploadButton = document.getElementById("uploadButton");
     const audioList = document.getElementById("audioList");
-    const statusText = document.getElementById("status");
-
-    // Элементы модалок
-    const storageModal = document.getElementById("storageModal");
-    const settingsButton = document.getElementById("settingsButton");
-    const progressFill = document.getElementById("progressFill");
-    const storageInfo = document.getElementById("storageInfo");
-    const MAX_STORAGE_MB = 2048;
-
-    // РENAME modal elements (модалка уже в DOM)
-    const renameModal = document.getElementById("renameModal");
-    const renameActionBtn = document.getElementById("renameAction");
-
-    // Для передачи контекста при открытии модалки
-    let currentFileForRename = null;
-    let currentTitleElForRename = null;
 
     async function ensureAnonymousSession() {
       try { await account.get(); }
       catch { await account.createAnonymousSession(); }
     }
 
-    async function loadTracks() {
-      try {
-        const orderDoc = await databases.getDocument(databaseId, collectionId, documentId);
-        let order = [];
-        try { order = JSON.parse(orderDoc.order || "[]"); } catch { order = []; }
+    // === Модалка для кнопки ⋯ ===
+    const miniModal = document.createElement("div");
+    miniModal.classList.add("mini-modal");
+    miniModal.innerHTML = `<button id="renameBtn" class="rename-btn">Переименовать</button>`;
+    document.body.appendChild(miniModal);
 
-        const files = await storage.listFiles(bucketId);
-        const filesMap = {};
-        files.files.forEach(f => (filesMap[f.$id] = f));
+    const renameBtn = miniModal.querySelector("#renameBtn");
+    let currentFile = null, currentTitleEl = null;
 
-        const sorted = order
-          .map(id => filesMap[id])
-          .filter(Boolean)
-          .concat(files.files.filter(f => !order.includes(f.$id)));
-
-        audioList.innerHTML = "";
-
-        // создаём элементы треков (включая редактирование имени и кнопку меню)
-        for (const file of sorted) {
-          const fileUrl = `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
-          const trackDiv = document.createElement("div");
-          trackDiv.classList.add("track");
-          trackDiv.draggable = true;
-          trackDiv.dataset.id = file.$id;
-
-          // title
-          const titleEl = document.createElement("strong");
-          titleEl.textContent = file.name;
-
-          // menu button (⋯)
-          const menuButton = document.createElement("button");
-          menuButton.textContent = "⋯";
-          menuButton.classList.add("menu-button");
-          // клик по кнопке — открываем маленькую модалку переименования
-          menuButton.addEventListener("click", (e) => {
-            e.stopPropagation();
-            openRenameModal(file, titleEl);
-          });
-
-          // dblclick (для десктопа) — inline-редактирование
-          titleEl.addEventListener("dblclick", () => {
-            beginInlineRename(file, titleEl);
-          });
-
-          // audio element
-          const audioEl = document.createElement("audio");
-          audioEl.controls = true;
-          audioEl.src = fileUrl;
-
-          // собрать карточку
-          trackDiv.appendChild(menuButton);
-          trackDiv.appendChild(titleEl);
-          trackDiv.appendChild(audioEl);
-          audioList.appendChild(trackDiv);
+    renameBtn.addEventListener("click", async () => {
+      miniModal.classList.remove("show");
+      const newName = prompt("Введите новое имя трека:", currentFile.name);
+      if (newName && newName.trim() && newName !== currentFile.name) {
+        try {
+          await storage.updateFile(bucketId, currentFile.$id, { name: newName.trim() });
+          currentFile.name = newName.trim();
+          currentTitleEl.textContent = currentFile.name;
+        } catch (error) {
+          console.error("Ошибка при изменении имени:", error.message);
         }
-
-        // после построения списка
-        enableAutoPlay();
-        enableDragAndDrop();
-      } catch (error) {
-        console.warn("⚠️ Порядок треков не найден:", error.message);
       }
+    });
+
+    function openRenameModal(file, titleEl, button) {
+      currentFile = file;
+      currentTitleEl = titleEl;
+      const rect = button.getBoundingClientRect();
+      miniModal.style.top = `${rect.bottom + 6 + window.scrollY}px`;
+      miniModal.style.left = `${rect.right - 160}px`;
+      miniModal.classList.add("show");
+    }
+
+    document.addEventListener("click", e => {
+      if (!miniModal.contains(e.target) && !e.target.classList.contains("menu-button")) {
+        miniModal.classList.remove("show");
+      }
+    });
+
+    async function loadTracks() {
+      const orderDoc = await databases.getDocument(databaseId, collectionId, documentId);
+      let order = [];
+      try { order = JSON.parse(orderDoc.order || "[]"); } catch {}
+      const files = await storage.listFiles(bucketId);
+      const map = Object.fromEntries(files.files.map(f => [f.$id, f]));
+      const sorted = order.map(id => map[id]).filter(Boolean)
+        .concat(files.files.filter(f => !order.includes(f.$id)));
+      audioList.innerHTML = "";
+      for (const file of sorted) {
+        const url = `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
+        const div = document.createElement("div");
+        div.classList.add("track");
+        div.draggable = true;
+        div.dataset.id = file.$id;
+        const title = document.createElement("strong");
+        title.textContent = file.name;
+
+        // двойной клик (ПК)
+        title.addEventListener("dblclick", () => {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.value = file.name;
+          input.style.width = "90%";
+          input.style.font = "inherit";
+          title.replaceWith(input);
+          input.focus();
+          input.addEventListener("keydown", e => {
+            if (e.key === "Enter") finish(true);
+            if (e.key === "Escape") finish(false);
+          });
+          input.addEventListener("blur", () => finish(true));
+          async function finish(save) {
+            if (save && input.value.trim() && input.value !== file.name) {
+              await storage.updateFile(bucketId, file.$id, { name: input.value.trim() });
+              file.name = input.value.trim();
+            }
+            input.replaceWith(title);
+            title.textContent = file.name;
+          }
+        });
+
+        const btn = document.createElement("button");
+        btn.textContent = "⋯";
+        btn.classList.add("menu-button");
+        btn.addEventListener("click", e => {
+          e.stopPropagation();
+          openRenameModal(file, title, btn);
+        });
+
+        const audio = document.createElement("audio");
+        audio.controls = true;
+        audio.src = url;
+
+        div.append(btn, title, audio);
+        audioList.appendChild(div);
+      }
+      enableDragAndDrop();
+      enableAutoPlay();
     }
 
     async function saveOrder() {
-      const order = [...audioList.children].map(el => el.dataset.id);
-      try {
-        await databases.updateDocument(databaseId, collectionId, documentId, {
-          order: JSON.stringify(order),
-        });
-      } catch (error) {
-        console.error("Ошибка сохранения порядка:", error.message);
-      }
+      const order = [...audioList.children].map(e => e.dataset.id);
+      await databases.updateDocument(databaseId, collectionId, documentId, {
+        order: JSON.stringify(order),
+      });
     }
 
     function enableAutoPlay() {
-      // Пересоздаём прослушиватели для текущих аудиоплееров
-      const audios = audioList.querySelectorAll("audio");
-      audios.forEach(audio => {
-        audio.addEventListener("play", () => {
-          audios.forEach(other => {
-            if (other !== audio) { other.pause(); other.currentTime = 0; }
-          });
-        });
-        audio.addEventListener("ended", () => {
-          const arr = [...audios];
-          const next = arr[arr.indexOf(audio) + 1];
+      const audios = document.querySelectorAll("audio");
+      audios.forEach(a => {
+        a.addEventListener("play", () => audios.forEach(b => b !== a && (b.pause(), b.currentTime = 0)));
+        a.addEventListener("ended", () => {
+          const next = audios[[...audios].indexOf(a) + 1];
           if (next) next.play();
         });
       });
     }
 
-    // Inline rename (used for dblclick on desktop)
-    function beginInlineRename(file, titleEl) {
-      const input = document.createElement("input");
-      input.type = "text";
-      input.value = file.name;
-      input.style.width = "90%";
-      input.style.font = "inherit";
-
-      titleEl.replaceWith(input);
-      input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
-
-      const finishEdit = async (save) => {
-        if (save && input.value.trim() && input.value !== file.name) {
-          try {
-            await storage.updateFile(bucketId, file.$id, { name: input.value.trim() });
-            file.name = input.value.trim();
-          } catch (error) {
-            console.error("Ошибка при изменении имени:", error.message);
-          }
-        }
-        input.replaceWith(titleEl);
-        titleEl.textContent = file.name;
-      };
-
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") finishEdit(true);
-        if (e.key === "Escape") finishEdit(false);
-      });
-
-      input.addEventListener("blur", () => finishEdit(true));
-    }
-
-    // openRenameModal - открывает мини-модалку и сохраняет контекст
-    function openRenameModal(file, titleEl) {
-      currentFileForRename = file;
-      currentTitleElForRename = titleEl;
-      renameModal.classList.remove("hidden");
-      renameModal.setAttribute("aria-hidden", "false");
-    }
-
-    // Нажатие на кнопку внутри модалки — запускаем inline-редактирование (то же, что dblclick)
-    renameActionBtn.addEventListener("click", () => {
-      if (!currentFileForRename || !currentTitleElForRename) {
-        renameModal.classList.add("hidden");
-        renameModal.setAttribute("aria-hidden", "true");
-        return;
-      }
-      // скрываем модалку
-      renameModal.classList.add("hidden");
-      renameModal.setAttribute("aria-hidden", "true");
-      // начинаем inline-редактирование
-      beginInlineRename(currentFileForRename, currentTitleElForRename);
-      // очистим контекст
-      currentFileForRename = null;
-      currentTitleElForRename = null;
-    });
-
-    // закрытие модалки по клику вне
-    renameModal.addEventListener("click", (e) => {
-      if (e.target === renameModal) {
-        renameModal.classList.add("hidden");
-        renameModal.setAttribute("aria-hidden", "true");
-        currentFileForRename = null;
-        currentTitleElForRename = null;
-      }
-    });
-
-    // === Drag & Drop with long-press for mobile ===
     function enableDragAndDrop() {
-      let draggedElement = null;
-      let placeholder = null;
-      let startY = 0;
-      let offsetY = 0;
-      let longPressTimer = null;
-      let isLongPressActive = false;
-
-      const LONG_PRESS_DELAY = 400; // ms
-
-      // Desktop native drag
-      audioList.addEventListener("dragstart", (e) => {
-        draggedElement = e.target.closest(".track");
-        if (!draggedElement) return;
-        draggedElement.classList.add("dragging");
+      let dragged = null;
+      audioList.addEventListener("dragstart", e => {
+        dragged = e.target.closest(".track");
+        if (!dragged) return;
+        dragged.classList.add("dragging");
         e.dataTransfer.effectAllowed = "move";
       });
-
       audioList.addEventListener("dragend", () => {
-        if (draggedElement) draggedElement.classList.remove("dragging");
-        draggedElement = null;
+        if (dragged) dragged.classList.remove("dragging");
+        dragged = null;
         saveOrder();
       });
-
-      audioList.addEventListener("dragover", (e) => {
+      audioList.addEventListener("dragover", e => {
         e.preventDefault();
         const target = e.target.closest(".track");
-        if (!target || target === draggedElement) return;
+        if (!target || target === dragged) return;
         const rect = target.getBoundingClientRect();
         const next = e.clientY > rect.top + rect.height / 2;
-        audioList.insertBefore(draggedElement, next ? target.nextSibling : target);
+        audioList.insertBefore(dragged, next ? target.nextSibling : target);
       });
-
-      // Mobile: long-press to start dragging
-      audioList.addEventListener("touchstart", (e) => {
-        const target = e.target.closest(".track");
-        if (!target) return;
-        // если нажали по input — не запускать drag
-        if (e.target.tagName === "INPUT") return;
-
-        startY = e.touches[0].clientY;
-        const rect = target.getBoundingClientRect();
-        offsetY = startY - rect.top;
-        draggedElement = target;
-
-        longPressTimer = setTimeout(() => {
-          isLongPressActive = true;
-          placeholder = document.createElement("div");
-          placeholder.className = "track placeholder";
-          placeholder.style.height = `${rect.height}px`;
-
-          draggedElement.classList.add("dragging");
-          draggedElement.style.position = "absolute";
-          draggedElement.style.left = `${rect.left}px`;
-          draggedElement.style.top = `${rect.top}px`;
-          draggedElement.style.width = `${rect.width}px`;
-          draggedElement.style.zIndex = "1000";
-          draggedElement.style.transition = "transform 0.15s ease";
-
-          requestAnimationFrame(() => {
-            draggedElement.style.transform = "scale(1.03)";
-          });
-
-          draggedElement.parentNode.insertBefore(placeholder, draggedElement.nextSibling);
-        }, LONG_PRESS_DELAY);
-      }, { passive: true });
-
-      audioList.addEventListener("touchmove", (e) => {
-        if (!draggedElement) return;
-        const touchY = e.touches[0].clientY;
-
-        // если long-press ещё не сработал, отменяем таймер при значительном движении (scroll)
-        if (!isLongPressActive) {
-          const moveDistance = Math.abs(touchY - startY);
-          if (moveDistance > 10) {
-            clearTimeout(longPressTimer);
-            longPressTimer = null;
-            draggedElement = null;
-          }
-          return;
-        }
-
-        e.preventDefault();
-        draggedElement.style.top = `${touchY - offsetY}px`;
-
-        const tracks = [...audioList.querySelectorAll(".track:not(.dragging):not(.placeholder)")];
-        for (const track of tracks) {
-          const rect = track.getBoundingClientRect();
-          const midY = rect.top + rect.height / 2;
-          if (touchY < midY) {
-            audioList.insertBefore(placeholder, track);
-            return;
-          }
-        }
-        audioList.appendChild(placeholder);
-      }, { passive: false });
-
-      const endTouch = () => {
-        clearTimeout(longPressTimer);
-        longPressTimer = null;
-
-        if (!isLongPressActive) {
-          draggedElement = null;
-          return;
-        }
-
-        if (draggedElement && placeholder) {
-          draggedElement.style.position = "";
-          draggedElement.style.left = "";
-          draggedElement.style.top = "";
-          draggedElement.style.width = "";
-          draggedElement.style.zIndex = "";
-          draggedElement.style.transform = "";
-          draggedElement.classList.remove("dragging");
-
-          audioList.insertBefore(draggedElement, placeholder);
-          placeholder.remove();
-        }
-
-        placeholder = null;
-        draggedElement = null;
-        isLongPressActive = false;
-        saveOrder();
-      };
-
-      audioList.addEventListener("touchend", endTouch);
-      audioList.addEventListener("touchcancel", endTouch);
     }
 
-    // === Индикатор заполненности (storage modal) ===
-    async function updateStorageUsage() {
-      try {
-        const files = await storage.listFiles(bucketId);
-        let totalSize = 0;
-        files.files.forEach(f => totalSize += f.sizeOriginal);
-        const usedMB = (totalSize / (1024 * 1024)).toFixed(1);
-        const percent = Math.min((usedMB / MAX_STORAGE_MB) * 100, 100).toFixed(1);
-        progressFill.style.width = `${percent}%`;
-        storageInfo.textContent = `${usedMB} МБ из ${MAX_STORAGE_MB} МБ (${percent}%)`;
-      } catch {
-        storageInfo.textContent = "Ошибка получения данных";
-      }
-    }
-
-    settingsButton.addEventListener("click", async () => {
-      const hidden = storageModal.classList.contains("hidden");
-      if (hidden) {
-        await updateStorageUsage();
-        storageModal.classList.remove("hidden");
-      } else storageModal.classList.add("hidden");
-    });
-
-    storageModal.addEventListener("click", (e) => {
-      if (e.target === storageModal) storageModal.classList.add("hidden");
-    });
-
-    // Инициализация
     (async () => {
       await ensureAnonymousSession();
       await loadTracks();
