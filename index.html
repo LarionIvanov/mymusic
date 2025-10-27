@@ -211,6 +211,23 @@ button, input, strong, h1, .track {
     </div>
   </div>
 
+  <script>
+  // Отключаем зумирование при двойном тапе в Safari
+  let lastTouchEnd = 0;
+  document.addEventListener(
+    'touchend',
+    (event) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    },
+    { passive: false }
+  );
+</script>
+
+  
   <script type="module">
     import { Client, Storage, Account, ID, Databases } from "https://cdn.jsdelivr.net/npm/appwrite@13.0.0/+esm";
 
