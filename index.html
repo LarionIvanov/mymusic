@@ -249,6 +249,43 @@
       background: rgba(0,0,0,0.05);
     }
 
+    /* Уменьшение popup-окна */
+.rename-popup {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  padding: 6px 10px;
+  width: auto;
+  height: auto;
+  z-index: 1000;
+}
+
+/* Кнопка внутри popup */
+.rename-popup button {
+  border: none;
+  background: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+.rename-popup button:hover {
+  background: #f2f2f2;
+}
+
+/* Чтобы текст трека не наезжал на кнопку ⋯ */
+.track strong {
+  display: inline-block;
+  max-width: calc(100% - 40px); /* Оставляем место справа под кнопку */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+
     .track input[type="text"] {
       font: inherit;
       padding: 6px 8px;
@@ -380,47 +417,49 @@
 
 
   function togglePopupMenu(file, titleEl, btn) {
-  closeAllPopups(); // Закрываем все открытые окна
+  closeAllPopups(); // Закрыть все предыдущие popup'ы
 
   const popup = document.createElement("div");
   popup.className = "rename-popup";
   popup.innerHTML = `<button>Переименовать</button>`;
 
-  // --- При клике на кнопку "Переименовать"
+  // Обработчик кнопки "Переименовать"
   popup.querySelector("button").addEventListener("click", () => {
     popup.remove();
-    beginInlineRename(file.$id, titleEl); // теперь передаём только ID
+    beginInlineRename(file.$id, titleEl);
   });
 
-  // Добавляем попап в общий контейнер (чтобы не обрезался overflow)
+  // Добавляем в body, чтобы не обрезалось overflow'ом
   document.body.appendChild(popup);
 
-  // --- Позиционирование рядом с кнопкой ⋯
+  // Определяем позицию рядом с кнопкой
   const rect = btn.getBoundingClientRect();
-  const popupWidth = 120; // примерная ширина окна
-  const popupHeight = 50; // примерная высота окна
+  const popupRect = popup.getBoundingClientRect();
+  const popupWidth = popupRect.width;
+  const popupHeight = popupRect.height;
 
   let left = rect.right - popupWidth;
   let top = rect.bottom + 6;
 
-  // Если попап выходит за границы экрана — сдвигаем внутрь
+  // Подстраховка: если окно выходит за границы
   if (left < 8) left = 8;
-  if (top + popupHeight > window.innerHeight) top = rect.top - popupHeight - 8;
+  if (top + popupHeight > window.innerHeight)
+    top = rect.top - popupHeight - 8;
 
   popup.style.position = "fixed";
   popup.style.left = `${left}px`;
   popup.style.top = `${top}px`;
   popup.style.opacity = "0";
-  popup.style.transform = "translateY(-5px) scale(0.95)";
+  popup.style.transform = "scale(0.95)";
+  popup.style.transition = "all 0.15s ease";
 
-  // --- Анимация появления (мягкое выплывание)
+  // Плавное появление
   requestAnimationFrame(() => {
-    popup.style.transition = "all 0.2s ease";
     popup.style.opacity = "1";
-    popup.style.transform = "translateY(0) scale(1)";
+    popup.style.transform = "scale(1)";
   });
 
-  // --- Закрытие по клику вне окна
+  // Закрытие при клике вне popup
   setTimeout(() => {
     document.addEventListener(
       "click",
@@ -432,10 +471,10 @@
   }, 0);
 }
 
-// --- Функция для закрытия всех активных popup-окон
 function closeAllPopups() {
   document.querySelectorAll(".rename-popup").forEach((p) => p.remove());
 }
+
 
 
     async function beginInlineRename(fileId, titleEl) {
