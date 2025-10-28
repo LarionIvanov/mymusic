@@ -41,6 +41,7 @@
       width: 320px;
     }
 
+    /* карточка трека */
     .track {
       display: flex;
       flex-direction: column;
@@ -53,9 +54,19 @@
       -webkit-user-select: none;
       -ms-user-select: none;
       touch-action: none;
-      position: relative;
+      position: relative; /* важно: popup позиционируется относительно трека */
       transition: all 0.2s ease;
       cursor: default; /* курсор не меняется при наведении */
+    }
+
+    /* текст названия — переносим на новую строку, не наезжает на кнопку */
+    .track strong {
+      display: block;
+      max-width: calc(100% - 44px); /* оставляем место справа под кнопку */
+      word-wrap: break-word;
+      white-space: normal;
+      line-height: 1.3;
+      margin-bottom: 6px;
     }
 
     .track.dragging {
@@ -107,7 +118,7 @@
       transform: rotate(30deg);
     }
 
-    /* Хранилище */
+    /* Хранилище (storage modal) */
     .modal {
       position: fixed;
       inset: 0;
@@ -167,87 +178,68 @@
     }
     #settingsButton:active { transform: scale(0.95); }
 
-    /* Стабильная, немигающая кнопка ⋯ */
-  .menu-button {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  /* внешний вид */
-  background: rgba(255,255,255,0.25);
-  color: #222;
-  font-size: 18px;
-  border: none;
-  box-shadow: none;
-
-  /* поведение касаний */
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent; /* убирает iOS подсветку */
-  -webkit-appearance: none;
-  -webkit-touch-callout: none;
-  touch-action: manipulation;
-
-  /* анимация только при hover/enter, не при активном касании */
-  transition: transform 0.12s ease, background 0.12s ease;
-  z-index: 5;
-}
-
-/* Ховер на десктопе — можно оставить */
-.menu-button:hover {
-  transform: scale(1.06);
-  background: rgba(255,255,255,0.4);
-}
-
-/* Ничего не менять при :active и при фокусе */
-.menu-button:active,
-.menu-button:focus {
-  outline: none;
-  transform: none;
-  background: rgba(255,255,255,0.25); /* тот же фон, чтобы ничего не мигало */
-}
-
-
-    /* Локальное меню (⋯) */
-    .rename-popup {
+    /* --- кнопка ⋯ --- */
+    .menu-button {
       position: absolute;
-      top: 36px;
+      top: 8px;
       right: 8px;
-      background: white;
-      border: 1px solid rgba(0,0,0,0.1);
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.25);
+      color: #222;
+      font-size: 18px;
+      border: none;
+      box-shadow: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-appearance: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
+      transition: transform 0.12s ease, background 0.12s ease;
+      z-index: 5;
+    }
+    .menu-button:hover { transform: scale(1.06); background: rgba(255,255,255,0.4); }
+    .menu-button:active, .menu-button:focus { outline: none; transform: none; background: rgba(255,255,255,0.25); }
+
+    /* --- popup (локальное меню) --- */
+    .rename-popup {
+      position: absolute; /* позиционируется внутри .track */
+      top: 36px;
+      right: 6px;
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(0,0,0,0.08);
       border-radius: 10px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.15);
-      padding: 0.5rem 0.75rem;
-      z-index: 20;
+      box-shadow: 0 8px 22px rgba(0,0,0,0.12);
+      padding: 6px 12px;
+      width: max-content;
+      z-index: 1000;
       opacity: 0;
-      transform: translateY(-5px) scale(0.95);
-      transition: all 0.2s ease;
-      animation: popupFade 0.25s forwards;
+      transform: translateY(-6px) scale(0.98);
+      animation: popupAppear 0.18s forwards cubic-bezier(0.22,1,0.36,1);
+      font: inherit;
+      -webkit-backdrop-filter: blur(6px); /* лёгкий glass-эффект */
+      backdrop-filter: blur(6px);
     }
 
-    @keyframes popupFade {
-      from { opacity: 0; transform: translateY(-5px) scale(0.95); }
+    @keyframes popupAppear {
+      from { opacity: 0; transform: translateY(-6px) scale(0.98); }
       to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .rename-popup button {
-      background: none;
       border: none;
-      font: inherit;
-      color: #222;
-      padding: 0.3rem 0.5rem;
+      background: none;
+      padding: 6px 14px;
       cursor: pointer;
+      font: inherit;
       border-radius: 6px;
-      transition: background 0.15s ease;
+      transition: background 0.12s ease;
     }
-    .rename-popup button:hover {
-      background: rgba(0,0,0,0.05);
-    }
+    .rename-popup button:hover { background: rgba(0,0,0,0.05); }
 
     .track input[type="text"] {
       font: inherit;
@@ -261,59 +253,6 @@
     @media (max-width:420px) {
       #upload-section, #audioList { width: calc(100% - 3rem); }
     }
-
-    /* ===== Исправления внешнего вида popup-меню и текста ===== */
-    /* Контейнер трека должен быть относительно позиционирован */
-.track {
-  position: relative;
-}
-
-/* Попап меню (окно "Переименовать") */
-.rename-popup {
-  position: absolute;
-  top: 32px; /* немного ниже кнопки ⋯ */
-  right: 6px;
-  background: white;
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
-  padding: 6px 12px;
-  width: max-content;
-  z-index: 1000;
-  opacity: 0;
-  transform: translateY(-4px) scale(0.98);
-  animation: popupAppear 0.18s forwards cubic-bezier(0.22, 1, 0.36, 1);
-  font: inherit;
-}
-
-/* Анимация плавного “всплытия” */
-@keyframes popupAppear {
-  from {
-    opacity: 0;
-    transform: translateY(-4px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* Кнопка внутри popup */
-.rename-popup button {
-  border: none;
-  background: none;
-  padding: 6px 14px;
-  cursor: pointer;
-  font: inherit;
-  border-radius: 6px;
-  transition: background 0.15s ease;
-}
-
-.rename-popup button:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-
   </style>
 </head>
 <body>
@@ -337,13 +276,14 @@
     </div>
   </div>
 
+  <!-- workaround: отключаем double-tap zoom на iOS -->
   <script>
     let lastTouchEnd = 0;
     document.addEventListener('touchend', e=>{
       const now = Date.now();
       if (now - lastTouchEnd <= 300) e.preventDefault();
       lastTouchEnd = now;
-    },{passive:false});
+    }, { passive: false });
   </script>
 
   <script type="module">
@@ -377,246 +317,218 @@
       catch { await account.createAnonymousSession(); }
     }
 
+    /* ---------------- loadTracks (использует поле names в документе) ---------------- */
     async function loadTracks() {
-  // Загружаем документ с порядком и именами
-  const orderDoc = await databases.getDocument(databaseId, collectionId, documentId);
-  
-  let order = [];
-  let names = {};
-  try { order = JSON.parse(orderDoc.order || "[]"); } catch { order = []; }
-  try { names = JSON.parse(orderDoc.names || "{}"); } catch { names = {}; }
-
-  // Получаем список файлов
-  const files = await storage.listFiles(bucketId);
-  const filesMap = {};
-  files.files.forEach(f => filesMap[f.$id] = f);
-
-  // Сортируем по сохранённому порядку
-  const sorted = order.map(id => filesMap[id])
-    .filter(Boolean)
-    .concat(files.files.filter(f => !order.includes(f.$id)));
-
-  audioList.innerHTML = "";
-
-  // Создаём DOM-элементы для каждого трека
-  for (const file of sorted) {
-    const fileUrl =
-      `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
-    const trackDiv = document.createElement("div");
-    trackDiv.classList.add("track");
-    trackDiv.draggable = true;
-    trackDiv.dataset.id = file.$id;
-
-    // Имя берём из names, если оно есть
-    const titleEl = document.createElement("strong");
-    titleEl.textContent = names[file.$id] || file.name;
-
-    const menuButton = document.createElement("button");
-    menuButton.textContent = "⋯";
-    menuButton.classList.add("menu-button");
-    menuButton.addEventListener("click", e => {
-      e.stopPropagation();
-      togglePopupMenu(file, titleEl, menuButton);
-    });
-
-    const audioEl = document.createElement("audio");
-    audioEl.controls = true;
-    audioEl.src = fileUrl;
-
-    trackDiv.append(menuButton, titleEl, audioEl);
-    audioList.appendChild(trackDiv);
-  }
-
-  enableAutoPlay();
-  enableDragAndDrop();
-}
-
-
-  function togglePopupMenu(file, titleEl, btn) {
-  closeAllPopups(); // Закрыть все предыдущие popup'ы
-
-  const popup = document.createElement("div");
-  popup.className = "rename-popup";
-  popup.innerHTML = `<button>Переименовать</button>`;
-
-  // Обработчик кнопки "Переименовать"
-  popup.querySelector("button").addEventListener("click", () => {
-    popup.remove();
-    beginInlineRename(file.$id, titleEl);
-  });
-
-  // Добавляем в body, чтобы не обрезалось overflow'ом
-  document.body.appendChild(popup);
-
-  // Определяем позицию рядом с кнопкой
-  const rect = btn.getBoundingClientRect();
-  const popupRect = popup.getBoundingClientRect();
-  const popupWidth = popupRect.width;
-  const popupHeight = popupRect.height;
-
-  let left = rect.right - popupWidth;
-  let top = rect.bottom + 6;
-
-  // Подстраховка: если окно выходит за границы
-  if (left < 8) left = 8;
-  if (top + popupHeight > window.innerHeight)
-    top = rect.top - popupHeight - 8;
-
-  popup.style.position = "fixed";
-  popup.style.left = `${left}px`;
-  popup.style.top = `${top}px`;
-  popup.style.opacity = "0";
-  popup.style.transform = "scale(0.95)";
-  popup.style.transition = "all 0.15s ease";
-
-  // Плавное появление
-  requestAnimationFrame(() => {
-    popup.style.opacity = "1";
-    popup.style.transform = "scale(1)";
-  });
-
-  // Закрытие при клике вне popup
-  setTimeout(() => {
-    document.addEventListener(
-      "click",
-      (e) => {
-        if (!popup.contains(e.target) && e.target !== btn) popup.remove();
-      },
-      { once: true }
-    );
-  }, 0);
-}
-
-function closeAllPopups() {
-  document.querySelectorAll(".rename-popup").forEach((p) => p.remove());
-}
-
-
-
-    async function beginInlineRename(fileId, titleEl) {
-  const oldName = titleEl.textContent;
-  const input = document.createElement("input");
-  input.type = "text";
-  input.value = oldName;
-  input.classList.add("rename-input");
-  titleEl.replaceWith(input);
-  input.focus();
-
-  // Отключаем drag & drop, пока идёт редактирование
-  const allTracks = document.querySelectorAll(".track");
-  allTracks.forEach(t => t.draggable = false);
-
-  // Функция для отмены и возврата старого состояния
-  const cancelRename = () => {
-    input.replaceWith(titleEl);
-    titleEl.textContent = oldName;
-    allTracks.forEach(t => t.draggable = true);
-  };
-
-  // Функция для сохранения изменений
-  const saveRename = async () => {
-    const newName = input.value.trim();
-    if (!newName || newName === oldName) {
-      cancelRename();
-      return;
-    }
-
-    try {
-      // Получаем текущий документ
       const orderDoc = await databases.getDocument(databaseId, collectionId, documentId);
-      let names = {};
-      try { names = JSON.parse(orderDoc.names || "{}"); } catch { names = {}; }
+      let order = [], names = {};
+      try { order = JSON.parse(orderDoc.order || "[]"); } catch {}
+      try { names = JSON.parse(orderDoc.names || "{}"); } catch {}
 
-      // Обновляем имя в объекте
-      names[fileId] = newName;
+      const files = await storage.listFiles(bucketId);
+      const filesMap = {};
+      files.files.forEach(f => filesMap[f.$id] = f);
 
-      // Отправляем обновлённые данные в Appwrite
-      await databases.updateDocument(databaseId, collectionId, documentId, {
-        names: JSON.stringify(names)
+      const sorted = order.map(id => filesMap[id]).filter(Boolean)
+        .concat(files.files.filter(f => !order.includes(f.$id)));
+
+      audioList.innerHTML = "";
+
+      for (const file of sorted) {
+        const fileUrl =
+          `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${file.$id}/view?project=68edff2c00028e4b809b`;
+        const trackDiv = document.createElement("div");
+        trackDiv.classList.add("track");
+        trackDiv.draggable = true;
+        trackDiv.dataset.id = file.$id;
+
+        const titleEl = document.createElement("strong");
+        titleEl.textContent = names[file.$id] || file.name;
+
+        const menuButton = document.createElement("button");
+        menuButton.textContent = "⋯";
+        menuButton.classList.add("menu-button");
+        // opening local popup near button — append to trackDiv so positioning is local
+        menuButton.addEventListener("click", e => {
+          e.stopPropagation();
+          togglePopupMenu(file, titleEl, menuButton, trackDiv);
+        });
+
+        const audioEl = document.createElement("audio");
+        audioEl.controls = true;
+        audioEl.src = fileUrl;
+
+        trackDiv.append(menuButton, titleEl, audioEl);
+        audioList.appendChild(trackDiv);
+      }
+
+      enableAutoPlay();
+      enableDragAndDrop();
+    }
+
+    /* ---------------- togglePopupMenu: локальный popup, позиционируется внутри trackDiv ---------------- */
+    function togglePopupMenu(file, titleEl, btn, trackDiv) {
+      closeAllPopups();
+
+      const popup = document.createElement("div");
+      popup.className = "rename-popup";
+      popup.innerHTML = `<button>Переименовать</button>`;
+
+      // clicking rename => start inline rename
+      popup.querySelector("button").addEventListener("click", () => {
+        popup.remove();
+        beginInlineRename(file.$id, titleEl);
       });
 
-      // В интерфейсе обновляем текст
-      titleEl.textContent = newName;
-    } catch (err) {
-      console.error("Ошибка при сохранении имени:", err);
-      titleEl.textContent = oldName;
-    } finally {
-      input.replaceWith(titleEl);
-      allTracks.forEach(t => t.draggable = true);
+      // append to trackDiv so popup pos is inside the card (position: absolute)
+      trackDiv.appendChild(popup);
+
+      // ensure it appears (animation via CSS)
+      // close when clicking outside: listen on document, but ignore clicks inside trackDiv
+      setTimeout(() => {
+        const onDocClick = (e) => {
+          if (!trackDiv.contains(e.target)) {
+            popup.remove();
+            document.removeEventListener('click', onDocClick);
+          }
+        };
+        document.addEventListener('click', onDocClick);
+      }, 0);
     }
-  };
 
-  // --- Обработчики событий ---
-  input.addEventListener("keydown", async e => {
-    if (e.key === "Enter") await saveRename();
-    if (e.key === "Escape") cancelRename();
-  });
+    function closeAllPopups() {
+      document.querySelectorAll(".rename-popup").forEach(p => p.remove());
+    }
 
-  input.addEventListener("blur", cancelRename);
-}
+    /* ---------------- beginInlineRename: отключает drag, сохраняет names в базе ---------------- */
+    async function beginInlineRename(fileId, titleEl) {
+      const oldName = titleEl.textContent;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.value = oldName;
+      titleEl.replaceWith(input);
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
 
+      // отключаем перетаскивание во время редактирования
+      const allTracks = document.querySelectorAll(".track");
+      allTracks.forEach(t => t.draggable = false);
 
-    function enableAutoPlay(){
-      const audios=audioList.querySelectorAll("audio");
-      audios.forEach(a=>{
-        a.addEventListener("play",()=>{
-          audios.forEach(o=>{if(o!==a){o.pause();o.currentTime=0;}});
+      let savedOrCancelled = false; // флаг, чтобы blur не мешал при сохранении
+
+      const finishCancel = () => {
+        if (savedOrCancelled) return;
+        savedOrCancelled = true;
+        input.replaceWith(titleEl);
+        titleEl.textContent = oldName;
+        allTracks.forEach(t => t.draggable = true);
+      };
+
+      const finishSave = async () => {
+        if (savedOrCancelled) return;
+        const newName = input.value.trim();
+        if (!newName || newName === oldName) {
+          finishCancel();
+          return;
+        }
+        savedOrCancelled = true;
+        try {
+          const orderDoc = await databases.getDocument(databaseId, collectionId, documentId);
+          let names = {};
+          try { names = JSON.parse(orderDoc.names || "{}"); } catch {}
+          names[fileId] = newName;
+          await databases.updateDocument(databaseId, collectionId, documentId, {
+            names: JSON.stringify(names)
+          });
+          titleEl.textContent = newName;
+        } catch (err) {
+          console.error('Ошибка при сохранении имени:', err);
+          titleEl.textContent = oldName;
+        } finally {
+          input.replaceWith(titleEl);
+          allTracks.forEach(t => t.draggable = true);
+        }
+      };
+
+      input.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') await finishSave();
+        if (e.key === 'Escape') finishCancel();
+      });
+
+      input.addEventListener('blur', () => {
+        // если уже сохранено/отменено — ничего не делаем
+        if (!savedOrCancelled) finishCancel();
+      });
+    }
+
+    /* ---------------- Автоплей ---------------- */
+    function enableAutoPlay() {
+      const audios = audioList.querySelectorAll("audio");
+      audios.forEach(a => {
+        a.addEventListener("play", () => {
+          audios.forEach(o => { if (o !== a) { o.pause(); o.currentTime = 0; } });
         });
-        a.addEventListener("ended",()=>{
-          const arr=[...audios];
-          const next=arr[arr.indexOf(a)+1];
-          if(next)next.play();
+        a.addEventListener("ended", () => {
+          const arr = [...audios];
+          const next = arr[arr.indexOf(a) + 1];
+          if (next) next.play();
         });
       });
     }
 
-    function enableDragAndDrop(){
-      let dragged=null;
-      audioList.addEventListener("dragstart",e=>{
-        dragged=e.target.closest(".track");
-        if(!dragged)return;
+    /* ---------------- Drag & Drop (desktop) — mobile long-press handled earlier in flow if needed ---------------- */
+    function enableDragAndDrop() {
+      let dragged = null;
+      audioList.addEventListener("dragstart", e => {
+        dragged = e.target.closest(".track");
+        if (!dragged) return;
         dragged.classList.add("dragging");
       });
-      audioList.addEventListener("dragend",()=>{
-        if(dragged)dragged.classList.remove("dragging");
-        dragged=null; saveOrder();
+      audioList.addEventListener("dragend", () => {
+        if (dragged) dragged.classList.remove("dragging");
+        dragged = null;
+        saveOrder();
       });
-      audioList.addEventListener("dragover",e=>{
+      audioList.addEventListener("dragover", e => {
         e.preventDefault();
-        const t=e.target.closest(".track");
-        if(!t||t===dragged)return;
-        const rect=t.getBoundingClientRect();
-        const next=e.clientY>rect.top+rect.height/2;
-        audioList.insertBefore(dragged,next?t.nextSibling:t);
+        const t = e.target.closest(".track");
+        if (!t || t === dragged) return;
+        const rect = t.getBoundingClientRect();
+        const next = e.clientY > rect.top + rect.height / 2;
+        audioList.insertBefore(dragged, next ? t.nextSibling : t);
       });
     }
 
-    async function saveOrder(){
-      const order=[...audioList.children].map(el=>el.dataset.id);
-      await databases.updateDocument(databaseId,collectionId,documentId,{
-        order:JSON.stringify(order),
+    async function saveOrder() {
+      const order = [...audioList.children].map(el => el.dataset.id);
+      await databases.updateDocument(databaseId, collectionId, documentId, {
+        order: JSON.stringify(order),
       });
     }
 
-    async function updateStorageUsage(){
-      const files=await storage.listFiles(bucketId);
-      let total=0; files.files.forEach(f=>total+=f.sizeOriginal);
-      const used=(total/1024/1024).toFixed(1);
-      const pct=Math.min((used/MAX_STORAGE_MB)*100,100).toFixed(1);
-      progressFill.style.width=`${pct}%`;
-      storageInfo.textContent=`${used} МБ из ${MAX_STORAGE_MB} МБ (${pct}%)`;
+    /* ---------------- Storage usage ---------------- */
+    async function updateStorageUsage() {
+      const files = await storage.listFiles(bucketId);
+      let total = 0; files.files.forEach(f => total += f.sizeOriginal);
+      const used = (total / 1024 / 1024).toFixed(1);
+      const pct = Math.min((used / MAX_STORAGE_MB) * 100, 100).toFixed(1);
+      progressFill.style.width = `${pct}%`;
+      storageInfo.textContent = `${used} МБ из ${MAX_STORAGE_MB} МБ (${pct}%)`;
     }
 
-    settingsButton.addEventListener("click",async()=>{
-      const hidden=storageModal.classList.contains("hidden");
-      if(hidden){await updateStorageUsage();storageModal.classList.remove("hidden");}
-      else storageModal.classList.add("hidden");
+    settingsButton.addEventListener('click', async () => {
+      const hidden = storageModal.classList.contains('hidden');
+      if (hidden) { await updateStorageUsage(); storageModal.classList.remove('hidden'); }
+      else storageModal.classList.add('hidden');
     });
-    storageModal.addEventListener("click",e=>{
-      if(e.target===storageModal)storageModal.classList.add("hidden");
+    storageModal.addEventListener('click', e => {
+      if (e.target === storageModal) storageModal.classList.add('hidden');
     });
 
-    (async()=>{await ensureAnonymousSession();await loadTracks();})();
+    /* ---------------- Init ---------------- */
+    (async () => {
+      await ensureAnonymousSession();
+      await loadTracks();
+    })();
   </script>
 </body>
 </html>
